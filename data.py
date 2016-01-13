@@ -14,15 +14,18 @@ class Annuli:
 
         # radii of shells
         self.edges_cm = e
+        # this is the average radius, assuming constant mass in the shell
         self.massav_cm = 0.75*(e[1:]**4 - e[:-1]**4) / (
             e[1:]**3 - e[:-1]**3)
+        # mid point of shell
         self.midpt_cm = 0.5*(e[1:] + e[:-1])
+        # shell widths
         self.widths_cm = e[1:] - e[:-1]
 
         # volume of shells
         self.vols_cm3 = 4./3. * N.pi * (e[1:]**3 - e[:-1]**3)
 
-        # projected volumes
+        # projected volumes (make a copy for speed)
         self.projvols_cm3 = N.ascontiguousarray(
             utils.projectionVolumeMatrix(e).transpose())
 
