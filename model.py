@@ -53,6 +53,31 @@ class ModelNullPot(Model):
             annuli, pars[self.ne_npars+self.T_npars:])
         return ne_prof, T_prof, Z_prof
 
+def computeGasAcceleration(annuli, ne_prof):
+    """Compute acceleration due to gas mass for density profile given.
+    annuli is an Annuli object."""
+
+    # mass in each shell
+    masses_g = ne_prof * annuli.vols_cm3 * (mu_e * mu_g)
+    
+    # cumulative mass interior to each shell
+    Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
+
+    # this is the mean acceleration on the shell, computed as total
+    # force from interior mass divided by the total mass:
+    #   ( Int_{r=R1}^{R2} (G/r**2) *
+    #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
+    #                     4*pi*r^2*rho*dR ) / (
+    #   (4./3.*pi*(R2**3-R1**3)*rho)
+    rout, rin = annuli.rout_cm, annuli.rin_cm
+    gmean = G_cgs*(
+        3*Minterior_g +
+        ne_pcm3*(mu_e*mu_g*math.pi)*(
+            (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
+        rin**2 + rin*rout + rout**2 )
+
+    return gmean
+
 class ModelHydro(Model):
     """This is a form of the model assuming hydrostatic
     equilibrium.
@@ -95,26 +120,8 @@ class ModelHydro(Model):
             annuli,
             pars[1+self.mass_npars+self.ne_npars:])
 
-        # compute acceleration from gas
-        # mass in each shell
-        masses_g = ne_prof * annuli.vols_cm3 * (mu_e * mu_g)
-        # cumulative mass interior to each shell
-        Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
-        # this is the mean acceleration on the shell, computed as total
-        # force from interior mass divided by the total mass:
-        #   ( Int_{r=R1}^{R2} (G/r**2) *
-        #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
-        #                     4*pi*r^2*rho*dR ) / (
-        #   (4./3.*pi*(R2**3-R1**3)*rho)
-        rout_cm, rin_cm = annuli.edges_cm[1:], annuli.edges_cm[:-1]
-        gmean = G_cgs*(
-            3*Minterior_g +
-            ne_pcm3*(mu_e*mu_g*math.pi)*(
-                (rout_cm-rin_cm)*((rout_cm+rin_cm)**2 + 2*rin_cm**2)))  / (
-            rin_cm**2 + rin_cm*rout_cm + rout_cm**2 )
-
         # add to total acceleration
-        accn += gmean
+        accn += computeGasAcceleration(annuli, ne_prof)
 
         # now compute temperatures from hydrostatic equilibrium
         T_prof = []

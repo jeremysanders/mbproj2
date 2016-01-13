@@ -14,13 +14,15 @@ class Annuli:
 
         # radii of shells
         self.edges_cm = e
+        rout = self.rout_cm = e[1:]
+        rin = self.rin_cm = e[:-1]
         # this is the average radius, assuming constant mass in the shell
-        self.massav_cm = 0.75*(e[1:]**4 - e[:-1]**4) / (
-            e[1:]**3 - e[:-1]**3)
+        self.massav_cm = 0.75*(rout**4 - rin**4) / (
+            rout**3 - rin**3)
         # mid point of shell
-        self.midpt_cm = 0.5*(e[1:] + e[:-1])
+        self.midpt_cm = 0.5*(rout + rin)
         # shell widths
-        self.widths_cm = e[1:] - e[:-1]
+        self.widths_cm = rout - rin
 
         # volume of shells
         self.vols_cm3 = 4./3. * N.pi * (e[1:]**3 - e[:-1]**3)
