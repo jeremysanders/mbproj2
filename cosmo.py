@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """Routines for calculating distances from cosmology,
 Taken from Ned Wright's cosmology calculator."""
 
+from __future__ import division, print_function
 from math import sqrt, pi, sin, exp
 
 c = 299792.458 # velocity of light in km/sec
@@ -9,7 +9,7 @@ Tyr = 977.8    # coefficent for converting 1/H into Gyr
 
 class Cosmology(object):
     """Cosmology calculation object."""
-    
+
     def __init__(self, z, H0=70., q0=0.5, WM=0.3, WV=0.7):
         """Set up cosmology object for cosmology of H0, q0, WM, WV and z."""
         self.H0 = H0
@@ -25,7 +25,7 @@ class Cosmology(object):
             return
         self._lastparams = params
         H0, WM, WV, z = params
-        
+
         WR = 0.        # Omega(radiation)
         WK = 0.        # Omega curvaturve = 1-Omega(total)
         DTT = 0.5      # time from z to now in units of 1/H0
@@ -35,7 +35,7 @@ class Cosmology(object):
         zage = 0.1     # age of Universe at redshift z in units of 1/H0
         zage_Gyr = 0.0 # value of zage in Gyr
         DCMR = 0.0     # comoving radial distance in units of c/H0
-        DCMR_Mpc = 0.0 
+        DCMR_Mpc = 0.0
         DCMR_Gyr = 0.0
         DA = 0.0       # angular size distance
         DA_Mpc = 0.0
@@ -125,16 +125,15 @@ class Cosmology(object):
         """Get angular diameter distance in Mpc."""
         self.calculate()
         return self._calc_D_A
-    
+
     @property
     def D_L(self):
         """Get luminosity distance in Mpc."""
         self.calculate()
         return self._calc_D_L
-    
+
     @property
     def kpc_per_arcsec(self):
         """Get number of kpc per arcsec."""
         self.calculate()
         return self._calc_kpc_DA
-        

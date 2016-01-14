@@ -1,8 +1,8 @@
 from __future__ import division, print_function
 from param import Param
 import numpy as N
-
-class Profile:
+ 
+class Cmpt:
     """Parametrise a profile."""
 
     def __init__(self, name, annuli):
@@ -17,11 +17,11 @@ class Profile:
         """Return profile for annuli given."""
         pass
 
-class ProfileFlat(Profile):
+class CmptFlat(Cmpt):
     """A flat profile."""
 
     def __init__(self, name, annuli, defval=0., minval=-1e99, maxval=1e99):
-        Profile.__init__(self, name, annuli)
+        Cmpt.__init__(self, name, annuli)
         self.defval = defval
         self.minval = minval
         self.maxval = maxval
@@ -32,14 +32,14 @@ class ProfileFlat(Profile):
     def computeProf(self, pars):
         return N.full(self.annuli.nshells, pars[self.name])
 
-class ProfileBinned(Profile):
+class CmptBinned(Cmpt):
     """A profile made of bins."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         binning=1, interpolate=False):
 
-        Profile.__init__(self, name, annuli)
+        Cmpt.__init__(self, name, annuli)
         self.defval = defval
         self.minval = minval
         self.maxval = maxval

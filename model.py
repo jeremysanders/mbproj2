@@ -26,22 +26,22 @@ class ModelNullPot(Model):
     Density, temperature and abunance are all separately fit.
     """
 
-    def __init__(self, annuli, ne_model, T_model, Z_model):
+    def __init__(self, annuli, ne_cmpt, T_cmpt, Z_cmpt):
         Model.__init__(self, annuli)
-        self.ne_model = ne_model
-        self.T_model = T_model
-        self.Z_model = Z_model
+        self.ne_cmpt = ne_cmpt
+        self.T_cmpt = T_cmpt
+        self.Z_cmpt = Z_cmpt
 
     def defPars(self):
-        pars = self.ne_model.defPars()
-        pars.update(self.T_model.defPars())
-        pars.update(self.Z_model.defPars())
+        pars = self.ne_cmpt.defPars()
+        pars.update(self.T_cmpt.defPars())
+        pars.update(self.Z_cmpt.defPars())
         return pars
 
     def computeProfs(self, pars):
-        ne_prof = self.ne_model.computeProf(pars)
-        T_prof = self.T_model.computeProf(pars)
-        Z_prof = self.Z_model.computeProf(pars)
+        ne_prof = self.ne_cmpt.computeProf(pars)
+        T_prof = self.T_cmpt.computeProf(pars)
+        Z_prof = self.Z_cmpt.computeProf(pars)
         return ne_prof, T_prof, Z_prof
 
 # to convert P and ne to T
@@ -55,17 +55,17 @@ class ModelHydro(Model):
     Included parameter is the outer pressure Pout
     """
 
-    def __init__(self, annuli, mass_model, ne_model, Z_model):
+    def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt):
         Model.__init__(self, annuli)
-        self.mass_model = mass_model
-        self.ne_model = ne_model
-        self.Z_model = Z_model
+        self.mass_cmpt = mass_cmpt
+        self.ne_cmpt = ne_cmpt
+        self.Z_cmpt = Z_cmpt
 
     def defPars(self):
         pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=0.)}
-        pars.update(self.mass_model.defPars())
-        pars.update(self.ne_model.defPars())
-        pars.update(self.Z_model.defPars())
+        pars.update(self.mass_cmpt.defPars())
+        pars.update(self.ne_cmpt.defPars())
+        pars.update(self.Z_cmpt.defPars())
         return pars
 
     def computeGasAccn(self, ne_prof):
@@ -98,12 +98,12 @@ class ModelHydro(Model):
         P0_ergpcm3 = 10**pars['Pout_logergpcm3']
 
         # this is acceleration and potential from mass model
-        g_prof, pot_prof = self.mass_model.computeProf(
+        g_prof, pot_prof = self.mass_cmpt.computeProf(
             pars[1:1+self.mass_npars])
 
         # input density and abundance profiles
-        ne_prof = self.ne_model.computeProf(pars)
-        Z_prof = self.Z_model.computeProf(pars)
+        ne_prof = self.ne_cmpt.computeProf(pars)
+        Z_prof = self.Z_cmpt.computeProf(pars)
 
         # add to total acceleration
         g_prof += self.computeGasAccn(ne_prof)

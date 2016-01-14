@@ -1,8 +1,8 @@
 from __future__ import division, print_function
 
-from utils import projectionVolume
-from physconstants import kpc_cm
 import numpy as N
+from physconstants import kpc_cm
+import utils
 
 class Annuli:
     """Store information about the annuli."""
@@ -33,6 +33,14 @@ class Annuli:
         # projected volumes (make a copy for speed)
         self.projvols_cm3 = N.ascontiguousarray(
             utils.projectionVolumeMatrix(e).transpose())
+
+def loadAnnuli(filename, centrecol, hwcol, cosmology):
+    data = N.loadtxt(filename)
+    centre = data[:,centrecol]
+    hw = data[:,hwcol]
+
+    edges = N.concatenate([[centre[0]-hw[0]], centre+hw])
+    return Annuli(edges, cosmology)
 
 class Data:
     pass
