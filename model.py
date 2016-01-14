@@ -87,7 +87,7 @@ class ModelHydro(Model):
         rout, rin = self.annuli.rout_cm, self.annuli.rin_cm
         gmean = G_cgs*(
             3*Minterior_g +
-            ne_pcm3*(mu_e*mu_g*math.pi)*(
+            ne_prof*(mu_e*mu_g*math.pi)*(
                 (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
             rin**2 + rin*rout + rout**2 )
 
@@ -95,11 +95,10 @@ class ModelHydro(Model):
 
     def computeProfs(self, pars):
         # this is the outer pressure
-        P0_ergpcm3 = 10**pars['Pout_logergpcm3']
+        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
 
         # this is acceleration and potential from mass model
-        g_prof, pot_prof = self.mass_cmpt.computeProf(
-            pars[1:1+self.mass_npars])
+        g_prof, pot_prof = self.mass_cmpt.computeProf(pars)
 
         # input density and abundance profiles
         ne_prof = self.ne_cmpt.computeProf(pars)
@@ -114,6 +113,8 @@ class ModelHydro(Model):
         P_ergpcm3 = P0_ergpcm3
         for ne_pcm3, width_cm, g_cmps2 in izip(
             ne_prof[::-1], self.annuli.widths_cm[::-1], g_prof[::-1]):
+
+            print(P_ergpcm3, ne_pcm3)
 
             T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
             T_prof.insert(0, T_keV)

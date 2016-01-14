@@ -20,24 +20,32 @@ class Cmpt:
 class CmptFlat(Cmpt):
     """A flat profile."""
 
-    def __init__(self, name, annuli, defval=0., minval=-1e99, maxval=1e99):
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99, log=False):
+
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
         self.minval = minval
         self.maxval = maxval
+        self.log = log
 
     def defPars(self):
-        return {self.name: Param(self.defval, minval=self.minval, maxval=self.maxval)}
+        return {self.name: Param(
+                self.defval, minval=self.minval, maxval=self.maxval)}
 
     def computeProf(self, pars):
-        return N.full(self.annuli.nshells, pars[self.name])
+        v = pars[self.name].val
+        if self.log:
+            v = 10**v
+
+        return N.full(self.annuli.nshells, v)
 
 class CmptBinned(Cmpt):
     """A profile made of bins."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
-        binning=1, interpolate=False):
+        binning=1, interpolate=False, log=False):
 
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
@@ -45,10 +53,12 @@ class CmptBinned(Cmpt):
         self.maxval = maxval
         self.binning = binning
         self.interpolate = interpolate
+        self.log = log
 
         # rounded up division
         self.npars = -(-annuli.nshells // binning)
-        self.parnames = ['%s_%i' % (self.name, i) for i in xrange(self.npars)]
+        # list of all the parameter names for the annuli
+        self.parnames = ['%s_%03i' % (self.name, i) for i in xrange(self.npars)]
 
     def defPars(self):
         return {
@@ -60,6 +70,8 @@ class CmptBinned(Cmpt):
 
         # extract radial parameters for model
         pvals = N.array([pars[n].val for n in self.parnames])
+        if self.log:
+            pvals = 10**pvals
 
         if self.binning == 1:
             return pvals

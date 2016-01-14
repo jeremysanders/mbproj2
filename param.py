@@ -4,6 +4,7 @@ class Param:
     """Model parameter."""
 
     def __init__(self, val, minval=-1e99, maxval=1e99, frozen=False):
+        val = float(val)
         self.val = val
         self.defval = val
         self.minval = minval
