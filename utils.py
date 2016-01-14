@@ -1,3 +1,5 @@
+from __future__ import division, print_function
+
 import numpy as N
 from scipy.special import gammaln
 
@@ -26,7 +28,7 @@ def projectionVolume(R1, R2, y1, y2):
     p3 = truncSqrt(R2**2 - y2**2)
     p4 = truncSqrt(R2**2 - y1**2)
 
-    return (2./3.) * N.pi * ((p1**3 - p2**3) + (p4**3 - p3**3))
+    return (2/3) * N.pi * ((p1**3 - p2**3) + (p4**3 - p3**3))
 
 def projectionVolumeMatrix(radii):
     """Calculate volumes (front and back) using a matrix calculation."""
@@ -43,7 +45,7 @@ def projectionVolumeMatrix(radii):
     p3 = (R2_2-y2_2).clip(0)
     p4 = (R2_2-y1_2).clip(0)
 
-    return 2 * (2./3.) * N.pi * ((p1**1.5 - p2**1.5) + (p4**1.5 - p3**1.5))
+    return 2 * (2/3) * N.pi * ((p1**1.5 - p2**1.5) + (p4**1.5 - p3**1.5))
 
 def symmetriseErrors(data):
     """Take numpy-format data,+,- and convert to data,+-."""

@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from param import Param
 import numpy as N
 
 class Profile:
@@ -8,9 +9,6 @@ class Profile:
         """annuli is an Annuli object."""
         self.name = name
         self.annuli = annuli
-
-    def numPars(self):
-        """Return number of parameters."""
 
     def defPars(self):
         """Return default parameters."""
@@ -22,59 +20,53 @@ class Profile:
 class ProfileFlat(Profile):
     """A flat profile."""
 
-    def __init__(self, name, annuli, defval=0.):
+    def __init__(self, name, annuli, defval=0., minval=-1e99, maxval=1e99):
         Profile.__init__(self, name, annuli)
         self.defval = defval
-        self.freeze = freeze
-
-    def numPars(self):
-        return 0 if self.freeze else 1
+        self.minval = minval
+        self.maxval = maxval
 
     def defPars(self):
-        return [] if self.freeze else [('val', self.defval)]
+        return {self.name: Param(self.defval, minval=self.minval, maxval=self.maxval)}
 
     def computeProf(self, pars):
-        return N.full(self.annuli.nshells, self.defval if self.freeze else pars[0])
+        return N.full(self.annuli.nshells, pars[self.name])
 
 class ProfileBinned(Profile):
     """A profile made of bins."""
 
     def __init__(
-        self, name, annuli, defval=0., binning=1, interpolate=False):
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+        binning=1, interpolate=False):
 
         Profile.__init__(self, name, annuli)
         self.defval = defval
+        self.minval = minval
+        self.maxval = maxval
         self.binning = binning
         self.interpolate = interpolate
-        self.freeze = freeze
 
         # rounded up division
-        self.npars = 0 if freeze else -(-annuli.nshells // binning)
-
-    def numPars(self):
-        return self.npars
+        self.npars = -(-annuli.nshells // binning)
+        self.parnames = ['%s_%i' % (self.name, i) for i in xrange(self.npars)]
 
     def defPars(self):
-        if N.isscalar(self.defval):
-            return [('val%03i' % i, self.defval) for i in xrange(self.npars)]
-        else:
-            return [] if self.freeze else [
-                ('val%03i' % i, v) for i, v in enumerate(self.defval)]
+        return {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.parnames
+            }
 
     def computeProf(self, pars):
-        if self.freeze:
-            if N.isscalar(self.defval):
-                return N.full(self.annuli.nshells, self.defval)
-            else:
-                annidx = N.arange(self.annuli.nshells) // self.binfactor
-                return N.array(self.defval)[annidx]
 
-        if self.binfactor == 1:
-            return N.array(pars)
+        # extract radial parameters for model
+        pvals = N.array([pars[n].val for n in self.parnames])
+
+        if self.binning == 1:
+            return pvals
         else:
             if self.interpolate:
-                annidx = N.arange(self.annuli.nshells) / self.binfactor
-                return N.interp(annidx, N.arange(self.npars), pars)
+                annidx = N.arange(self.annuli.nshells) / self.binning
+                return N.interp(annidx, N.arange(self.npars), pvals)
             else:
-                annidx = N.arange(self.annuli.nshells) // self.binfactor
-                return N.array(pars)[annidx]
+                annidx = N.arange(self.annuli.nshells) // self.binning
+                return pvals[annidx]

@@ -1,23 +1,23 @@
+from __future__ import division, print_function
+
+from param import Param
 import math
+import numpy as N
 from itertools import izip
 from physconstants import ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, G_cgs
 
 class Model:
+    def __init__(self, annuli):
+        """Initialise Model. annuli is an Annuli object."""
+        self.annuli = annuli
+
     def defPars(self):
-        """Return list of default parameters, in form
-        [('name1', val1), ('name2', val2)]
-        """
+        """Return dict of parameters (Param objects)."""
 
-    def computeProfs(self, annuli, pars):
-        """Take the array of parameter values and return
+    def computeProfs(self, pars):
+        """Take the dict of parameter values and return
         arrays of ne, T and Z.
-
-        annuli is an Annuli object
         """
-
-    def numPars(self):
-        """Return number of parameters."""
-        return 0
 
 class ModelNullPot(Model):
     """This is a form of the model without any gravitational
@@ -26,57 +26,26 @@ class ModelNullPot(Model):
     Density, temperature and abunance are all separately fit.
     """
 
-    def __init__(self, ne_model, T_model, Z_model):
+    def __init__(self, annuli, ne_model, T_model, Z_model):
+        Model.__init__(self, annuli)
         self.ne_model = ne_model
         self.T_model = T_model
         self.Z_model = Z_model
 
-        self.ne_npars = ne_model.numPars()
-        self.T_npars = T_model.numPars()
-        self.Z_npars = Z_model.numPars()
-
     def defPars(self):
-        return (
-            self.ne_model.defPars() +
-            self.T_model.defPars() +
-            self.Z_model.defPars() )
+        pars = self.ne_model.defPars()
+        pars.update(self.T_model.defPars())
+        pars.update(self.Z_model.defPars())
+        return pars
 
-    def numPars(self):
-        return self.ne_npars + self.T_npars + self.Z_npars
-
-    def computeProfs(self, annuli, pars):
-        ne_prof = self.ne_model.computeProf(
-            annuli, pars[:self.ne_npars])
-        T_prof = self.T_model.computeProf(
-            annuli, pars[self.ne_npars:self.ne_npars+self.T_npars])
-        Z_prof = self.Z_model.computeProf(
-            annuli, pars[self.ne_npars+self.T_npars:])
+    def computeProfs(self, pars):
+        ne_prof = self.ne_model.computeProf(pars)
+        T_prof = self.T_model.computeProf(pars)
+        Z_prof = self.Z_model.computeProf(pars)
         return ne_prof, T_prof, Z_prof
 
-def computeGasAcceleration(annuli, ne_prof):
-    """Compute acceleration due to gas mass for density profile given.
-    annuli is an Annuli object."""
-
-    # mass in each shell
-    masses_g = ne_prof * annuli.vols_cm3 * (mu_e * mu_g)
-    
-    # cumulative mass interior to each shell
-    Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
-
-    # this is the mean acceleration on the shell, computed as total
-    # force from interior mass divided by the total mass:
-    #   ( Int_{r=R1}^{R2} (G/r**2) *
-    #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
-    #                     4*pi*r^2*rho*dR ) / (
-    #   (4./3.*pi*(R2**3-R1**3)*rho)
-    rout, rin = annuli.rout_cm, annuli.rin_cm
-    gmean = G_cgs*(
-        3*Minterior_g +
-        ne_pcm3*(mu_e*mu_g*math.pi)*(
-            (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
-        rin**2 + rin*rout + rout**2 )
-
-    return gmean
+# to convert P and ne to T
+P_ne_to_T = keV_K * boltzmann_erg_K * (1 + 1/ne_nH)
 
 class ModelHydro(Model):
     """This is a form of the model assuming hydrostatic
@@ -86,51 +55,67 @@ class ModelHydro(Model):
     Included parameter is the outer pressure Pout
     """
 
-    def __init__(self, mass_model, ne_model, Z_model):
+    def __init__(self, annuli, mass_model, ne_model, Z_model):
+        Model.__init__(self, annuli)
         self.mass_model = mass_model
         self.ne_model = ne_model
         self.Z_model = Z_model
 
-        self.mass_npars = mass_model.numPars()
-        self.ne_npars = ne_model.numPars()
-        self.Z_npars = Z_model.numPars()
-
     def defPars(self):
-        return (
-            [('Pout_logergpcm3', -15.)] +
-            self.mass_model.defPars() +
-            self.ne_model.defPars() +
-            self.Z_model.defPars() )
+        pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=0.)}
+        pars.update(self.mass_model.defPars())
+        pars.update(self.ne_model.defPars())
+        pars.update(self.Z_model.defPars())
+        return pars
 
-    def numPars(self):
-        return 1 + self.mass_npars + self.ne_npars + self.Z_npars
+    def computeGasAccn(self, ne_prof):
+        """Compute acceleration due to gas mass for density profile given.
+        """
 
-    def computeProfs(self, annuli, pars):
-        P0_ergpcm3 = 10**pars[0]
+        # mass in each shell
+        masses_g = ne_prof * self.annuli.vols_cm3 * (mu_e * mu_g)
+
+        # cumulative mass interior to each shell
+        Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
+
+        # this is the mean acceleration on the shell, computed as total
+        # force from interior mass divided by the total mass:
+        #   ( Int_{r=R1}^{R2} (G/r**2) *
+        #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
+        #                     4*pi*r^2*rho*dR ) / (
+        #   (4./3.*pi*(R2**3-R1**3)*rho)
+        rout, rin = self.annuli.rout_cm, self.annuli.rin_cm
+        gmean = G_cgs*(
+            3*Minterior_g +
+            ne_pcm3*(mu_e*mu_g*math.pi)*(
+                (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
+            rin**2 + rin*rout + rout**2 )
+
+        return gmean
+
+    def computeProfs(self, pars):
+        # this is the outer pressure
+        P0_ergpcm3 = 10**pars['Pout_logergpcm3']
 
         # this is acceleration and potential from mass model
-        accn, pot = self.mass_model.computeProf(
-            annuli, pars[1:1+self.mass_npars])
+        g_prof, pot_prof = self.mass_model.computeProf(
+            pars[1:1+self.mass_npars])
 
         # input density and abundance profiles
-        ne_prof = self.ne_model.computeProf(
-            annuli,
-            pars[1+self.mass_npars:1+self.mass_npars+self.ne_npars])
-        Z_prof = self.Z_model.computeProf(
-            annuli,
-            pars[1+self.mass_npars+self.ne_npars:])
+        ne_prof = self.ne_model.computeProf(pars)
+        Z_prof = self.Z_model.computeProf(pars)
 
         # add to total acceleration
-        accn += computeGasAcceleration(annuli, ne_prof)
+        g_prof += self.computeGasAccn(ne_prof)
 
-        # now compute temperatures from hydrostatic equilibrium
+        # now compute temperatures from hydrostatic equilibrium by
+        # iterating in reverse over the shells
         T_prof = []
         P_ergpcm3 = P0_ergpcm3
         for ne_pcm3, width_cm, g_cmps2 in izip(
-            ne_prof[::-1], annuli.widths_cm[::-1], accn[::-1]):
+            ne_prof[::-1], self.annuli.widths_cm[::-1], g_prof[::-1]):
 
-            T_keV = P_ergpcm3 / (
-                (keV_K * boltzmann_erg_K * (1 + 1./ne_nH)) * ne_pcm3)
+            T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
             T_prof.insert(0, T_keV)
             P_ergpcm3 += width_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
 
