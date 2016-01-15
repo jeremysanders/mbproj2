@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division, print_function
-
+from itertools import izip
 import numpy as N
 from physconstants import kpc_cm
 import utils
@@ -100,6 +100,7 @@ class Band:
 
         projrates = N.dot(rates, annuli.projvols_cm3) * self.areascales
         projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
+        projrates *= self.exposures
 
         return projrates
 
@@ -128,12 +129,25 @@ class Data:
         self.annuli = annuli
 
     def calcProfiles(self, model, pars):
-        """Predict model profiles for each model."""
+        """Predict model profiles for each band.
+
+        Returns profiles, log-likelihood
+        """
 
         ne_prof, T_prof, Z_prof = model.computeProfs(pars)
 
         profs = []
-        for b in self.bands:
-            profs.append(b.calcProjProfile(
-                    self.annuli, ne_prof, T_prof, Z_prof, model.NH_1022pcm2))
+        for band in self.bands:
+            modprof = band.calcProjProfile(
+                self.annuli, ne_prof, T_prof, Z_prof, model.NH_1022pcm2)
+            profs.append(modprof)
+
         return profs
+
+    def calcLikelihood(self, predprofs):
+        """Given predicted profiles, calculate likelihood."""
+
+        likelihood = 0.
+        for band, predprof in izip(self.bands, predprofs):
+            likelihood += utils.cashLogLikelihood(band.cts, predprof)
+        return likelihood

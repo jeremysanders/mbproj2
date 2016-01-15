@@ -46,4 +46,5 @@ band3.backrates = N.loadtxt(
 data = mb.Data([band1, band2, band3], annuli)
 
 profs = data.calcProfiles(model, pars)
-print(profs)
+print(data.calcLikelihood(profs))
+
