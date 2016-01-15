@@ -114,8 +114,6 @@ class ModelHydro(Model):
         for ne_pcm3, width_cm, g_cmps2 in izip(
             ne_prof[::-1], self.annuli.widths_cm[::-1], g_prof[::-1]):
 
-            print(P_ergpcm3, ne_pcm3)
-
             T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
             T_prof.insert(0, T_keV)
             P_ergpcm3 += width_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
