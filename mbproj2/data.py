@@ -1,17 +1,20 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division, print_function
 
 import numpy as N
 from physconstants import kpc_cm
 import utils
+import countrate
 
 class Annuli:
     """Store information about the annuli."""
 
-    def __init__(self, edges_arcmin, cosmology, NH_1022pcm2):
+    def __init__(self, edges_arcmin, cosmology):
         self.cosmology = cosmology
-        self.NH_1022pcm2 = NH_1022pcm2
 
         self.edges_arcmin = edges_arcmin
+        self.geomarea_arcmin2 = N.pi * (edges_arcmin[1:]**2 - edges_arcmin[:-1]**2)
         self.nshells = len(edges_arcmin) - 1
 
         # radii of shells
@@ -35,11 +38,13 @@ class Annuli:
         # volume of shells
         self.vols_cm3 = 4/3 * N.pi * (rout**3-rin**3)
 
-        # projected volumes (make a copy for speed)
-        self.projvols_cm3 = N.ascontiguousarray(
-            utils.projectionVolumeMatrix(e).transpose())
+        # projected volumes
+        self.projvols_cm3 = utils.projectionVolumeMatrix(e)
 
-def loadAnnuli(filename, cosmology, NH, centrecol=0, hwcol=1):
+        # count rate helper (associated with cosmology)
+        self.ctrate = countrate.CountRate(cosmology)
+
+def loadAnnuli(filename, cosmology, centrecol=0, hwcol=1):
     """Load annuli from data file, if radius of centre (arcmin) is
     given by centrecol and bin half-width is given by hwcol
     column. cosmology is a Cosmology object."""
@@ -49,7 +54,7 @@ def loadAnnuli(filename, cosmology, NH, centrecol=0, hwcol=1):
     hw = data[:,hwcol]
 
     edges = N.concatenate([[centre[0]-hw[0]], centre+hw])
-    return Annuli(edges, cosmology, NH)
+    return Annuli(edges, cosmology)
 
 def expandlist(x, length):
     """If x is a list, check it has the length length.
@@ -86,6 +91,18 @@ class Band:
         else:
             self.areascales = N.array(expandlist(areascales, len(cts)))
 
+    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2):
+        """Predict profile given cluster profiles."""
+
+        rates = annuli.ctrate.getCountRate(
+            self.rmf, self.arf, self.emin_keV, self.emax_keV,
+            NH_1022pcm2, T_prof, Z_prof, ne_prof)
+
+        projrates = N.dot(rates, annuli.projvols_cm3) * self.areascales
+        projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
+
+        return projrates
+
 def loadBand(
     filename, emin_keV, emax_keV, rmf, arf,
     radiuscol=0, hwcol=1, ctcol=2, areacol=3, expcol=4):
@@ -103,4 +120,20 @@ def loadBand(
 
     return Band(emin_keV, emax_keV, cts, rmf, arf, exps, areascales=areascales)
 
+class Data:
+    """Dataset class."""
 
+    def __init__(self, bands, annuli):
+        self.bands = bands
+        self.annuli = annuli
+
+    def calcProfiles(self, model, pars):
+        """Predict model profiles for each model."""
+
+        ne_prof, T_prof, Z_prof = model.computeProfs(pars)
+
+        profs = []
+        for b in self.bands:
+            profs.append(b.calcProjProfile(
+                    self.annuli, ne_prof, T_prof, Z_prof, model.NH_1022pcm2))
+        return profs

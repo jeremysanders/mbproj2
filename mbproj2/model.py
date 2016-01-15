@@ -7,9 +7,11 @@ from itertools import izip
 from physconstants import ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, G_cgs
 
 class Model:
-    def __init__(self, annuli):
+    def __init__(self, annuli, NH_1022pcm2=None):
         """Initialise Model. annuli is an Annuli object."""
         self.annuli = annuli
+        assert NH_1022pcm2 is not None
+        self.NH_1022pcm2 = NH_1022pcm2
 
     def defPars(self):
         """Return dict of parameters (Param objects)."""
@@ -26,8 +28,8 @@ class ModelNullPot(Model):
     Density, temperature and abunance are all separately fit.
     """
 
-    def __init__(self, annuli, ne_cmpt, T_cmpt, Z_cmpt):
-        Model.__init__(self, annuli)
+    def __init__(self, annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=None):
+        Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.ne_cmpt = ne_cmpt
         self.T_cmpt = T_cmpt
         self.Z_cmpt = Z_cmpt
@@ -55,8 +57,8 @@ class ModelHydro(Model):
     Included parameter is the outer pressure Pout
     """
 
-    def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt):
-        Model.__init__(self, annuli)
+    def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt, NH_1022pcm2=None):
+        Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.mass_cmpt = mass_cmpt
         self.ne_cmpt = ne_cmpt
         self.Z_cmpt = Z_cmpt
