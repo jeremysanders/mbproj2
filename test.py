@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 import os
 import numpy as N
+import scipy.optimize
 
 import mbproj2 as mb
 
@@ -13,7 +14,7 @@ annuli = mb.loadAnnuli(
 
 nfw = mb.CmptMassNFW(annuli)
 
-ne_cmpt = mb.CmptBinned('ne', annuli, binning=5, log=True, defval=-2)
+ne_cmpt = mb.CmptBinned('ne', annuli, log=True, defval=-2)
 Z_cmpt = mb.CmptFlat('Z', annuli, defval=0.3, log=True)
 
 model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2=0.378)
@@ -45,6 +46,14 @@ band3.backrates = N.loadtxt(
 
 data = mb.Data([band1, band2, band3], annuli)
 
-profs = data.calcProfiles(model, pars)
-print(data.calcLikelihood(profs))
+fit = mb.Fit(pars, model, data)
 
+def fitfunc(vals):
+    fit.updateThawed(vals)
+    profs = fit.calcProfiles()
+    like = fit.calcLikelihood(profs)
+    print(like)
+    return -like
+
+thawedpars = fit.thawedVals()
+scipy.optimize.minimize(fitfunc, thawedpars)

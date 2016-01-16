@@ -127,27 +127,3 @@ class Data:
     def __init__(self, bands, annuli):
         self.bands = bands
         self.annuli = annuli
-
-    def calcProfiles(self, model, pars):
-        """Predict model profiles for each band.
-
-        Returns profiles, log-likelihood
-        """
-
-        ne_prof, T_prof, Z_prof = model.computeProfs(pars)
-
-        profs = []
-        for band in self.bands:
-            modprof = band.calcProjProfile(
-                self.annuli, ne_prof, T_prof, Z_prof, model.NH_1022pcm2)
-            profs.append(modprof)
-
-        return profs
-
-    def calcLikelihood(self, predprofs):
-        """Given predicted profiles, calculate likelihood."""
-
-        likelihood = 0.
-        for band, predprof in izip(self.bands, predprofs):
-            likelihood += utils.cashLogLikelihood(band.cts, predprof)
-        return likelihood

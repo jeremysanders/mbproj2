@@ -11,7 +11,7 @@ class Cmpt:
         self.annuli = annuli
 
     def defPars(self):
-        """Return default parameters."""
+        """Return default parameters (dict of Param)."""
 
     def computeProf(self, pars):
         """Return profile for annuli given."""
@@ -31,7 +31,7 @@ class CmptFlat(Cmpt):
 
     def defPars(self):
         return {self.name: Param(
-                self.defval, minval=self.minval, maxval=self.maxval)}
+            self.defval, minval=self.minval, maxval=self.maxval)}
 
     def computeProf(self, pars):
         v = pars[self.name].val
