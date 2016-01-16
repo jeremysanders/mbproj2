@@ -33,3 +33,7 @@ mu_e = 1.41 / ne_nH
 
 # year in s
 yr_s = 31556926
+
+# convert pressure in erg cm^-3 and electron density in cm^-3 to
+# temperature in keV
+P_ne_to_T = keV_K * boltzmann_erg_K * (1 + 1/ne_nH)

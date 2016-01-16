@@ -4,7 +4,7 @@ from fit import Param
 import math
 import numpy as N
 from itertools import izip
-from physconstants import ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, G_cgs
+from physconstants import ne_nH, mu_g, mu_e, P_ne_to_T, G_cgs
 
 class Model:
     def __init__(self, annuli, NH_1022pcm2=None):
@@ -45,9 +45,6 @@ class ModelNullPot(Model):
         T_prof = self.T_cmpt.computeProf(pars)
         Z_prof = self.Z_cmpt.computeProf(pars)
         return ne_prof, T_prof, Z_prof
-
-# to convert P and ne to T
-P_ne_to_T = keV_K * boltzmann_erg_K * (1 + 1/ne_nH)
 
 class ModelHydro(Model):
     """This is a form of the model assuming hydrostatic
@@ -104,7 +101,11 @@ class ModelHydro(Model):
 
         # input density and abundance profiles
         ne_prof = self.ne_cmpt.computeProf(pars)
+        # avoid hydrostatic equilibrium blowing up below
+        ne_prof = N.clip(ne_prof, 1e-99, 1e99)
         Z_prof = self.Z_cmpt.computeProf(pars)
+        # metallicity cannot be -ve
+        Z_prof = N.clip(Z_prof, 0, 1e99)
 
         # add to total acceleration
         g_prof += self.computeGasAccn(ne_prof)

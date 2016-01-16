@@ -3,6 +3,8 @@ from __future__ import division, print_function
 import os
 import numpy as N
 import scipy.optimize
+import emcee
+import h5py
 
 import mbproj2 as mb
 
@@ -19,6 +21,8 @@ Z_cmpt = mb.CmptFlat('Z', annuli, defval=0.3, log=True)
 
 model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2=0.378)
 pars = model.defPars()
+
+# pars['Z'].frozen = True
 
 band1 = mb.loadBand(
     os.path.join(indir, 'sb_profile_500_1200.dat.rebin'),
@@ -47,22 +51,27 @@ band3.backrates = N.loadtxt(
 data = mb.Data([band1, band2, band3], annuli)
 
 fit = mb.Fit(pars, model, data)
+fit.doFitting()
 
-def fitfunc(vals):
-    fit.updateThawed(vals)
-    penalty = fit.penaltyTrimBounds()
-    profs = fit.calcProfiles()
-    like = fit.calcLikelihood(profs) - penalty*100
-    print(penalty, like)
-    return -like
 
-thawedpars = fit.thawedVals()
-fitpars = scipy.optimize.minimize(fitfunc, thawedpars)
+ndim = len(fit.thawed)
+nwalkers = 200
 
-print('B1',band1.cts)
-print('B2',band2.cts)
-print('B3',band3.cts)
+bestfit = N.array(fit.thawedParVals())
+p0 = []
+for i in xrange(nwalkers):
+    p0.append(N.random.normal(loc=bestfit, scale=N.abs(bestfit)*1e-3))
 
-fit.updateThawed(fitpars.x)
-for p in fit.calcProfiles():
-    print(p)
+sampler = emcee.EnsembleSampler(
+    nwalkers, ndim, lambda par: fit.getLikelihood(par))
+
+pos, prob, state = sampler.run_mcmc(p0, 1000)
+sampler.reset()
+
+sampler.run_mcmc(pos, 1000)
+
+with h5py.File('test.h5') as f:
+    f['chain'] = sampler.flatchain
+
+print(sorted(fit.thawed))
+
