@@ -60,12 +60,12 @@ def expandlist(x, length):
     """If x is a list, check it has the length length.
     Otherwise, expand item to be a list with length given."""
 
-    if isinstance(x, list) or isinstance(x, tuple):
+    if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, N.ndarray):
         if len(x) != length:
             raise RuntimeError('Length not same')
-        return list(x)
+        return N.array(x, dtype=N.float64)
     else:
-        return [x]*length
+        return N.full(length, float(x))
 
 class Band:
     """Count profile in a band."""
@@ -89,7 +89,7 @@ class Band:
         if areascales is None:
             self.areascales = N.ones(len(cts))
         else:
-            self.areascales = N.array(expandlist(areascales, len(cts)))
+            self.areascales = N.array(areascales)
 
     def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2):
         """Predict profile given cluster profiles."""
@@ -98,7 +98,8 @@ class Band:
             self.rmf, self.arf, self.emin_keV, self.emax_keV,
             NH_1022pcm2, T_prof, Z_prof, ne_prof)
 
-        projrates = N.dot(rates, annuli.projvols_cm3) * self.areascales
+        projrates = N.dot(rates, annuli.projvols_cm3)
+        projrates *= self.areascales
         projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
         projrates *= self.exposures
 
@@ -116,7 +117,7 @@ def loadBand(
     areas = data[:,areacol]
     exps = data[:,expcol]
 
-    geomareas = N.pi*4*radii*hws
+    geomareas = N.pi*((radii+hws)**2-(radii-hws)**2)
     areascales = areas/geomareas
 
     return Band(emin_keV, emax_keV, cts, rmf, arf, exps, areascales=areascales)

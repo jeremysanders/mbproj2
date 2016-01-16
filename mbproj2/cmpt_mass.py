@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import math
 import numpy as N
-from param import Param
+from fit import Param
 from cmpt import Cmpt
 from physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm
 

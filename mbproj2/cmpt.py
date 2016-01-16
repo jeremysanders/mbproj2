@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-from param import Param
+from fit import Param
 import numpy as N
  
 class Cmpt:

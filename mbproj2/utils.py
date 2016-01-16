@@ -95,6 +95,7 @@ def readProfile(filename, column, cnvtfloat=True):
 
 def cashLogLikelihood(data, model):
     """Calculate log likelihood of Cash statistic."""
+
     like = N.sum(data * N.log(model)) - N.sum(model) - N.sum(gammaln(data+1))
     if N.isfinite(like):
         return like

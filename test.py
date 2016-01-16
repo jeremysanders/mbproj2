@@ -50,10 +50,19 @@ fit = mb.Fit(pars, model, data)
 
 def fitfunc(vals):
     fit.updateThawed(vals)
+    penalty = fit.penaltyTrimBounds()
     profs = fit.calcProfiles()
-    like = fit.calcLikelihood(profs)
-    print(like)
+    like = fit.calcLikelihood(profs) - penalty*100
+    print(penalty, like)
     return -like
 
 thawedpars = fit.thawedVals()
-scipy.optimize.minimize(fitfunc, thawedpars)
+fitpars = scipy.optimize.minimize(fitfunc, thawedpars)
+
+print('B1',band1.cts)
+print('B2',band2.cts)
+print('B3',band3.cts)
+
+fit.updateThawed(fitpars.x)
+for p in fit.calcProfiles():
+    print(p)

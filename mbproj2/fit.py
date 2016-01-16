@@ -3,6 +3,21 @@ from __future__ import division, print_function
 from itertools import izip
 import utils
 
+class Param:
+    """Model parameter."""
+
+    def __init__(self, val, minval=-1e99, maxval=1e99, frozen=False):
+        val = float(val)
+        self.val = val
+        self.defval = val
+        self.minval = minval
+        self.maxval = maxval
+        self.frozen = frozen
+
+    def __repr__(self):
+        return '<Param: val=%.2g, minval=%.2g, maxval=%.2g, frozen=%s>' % (
+            self.val, self.minval, self.maxval, self.frozen)
+
 class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
 
@@ -45,3 +60,18 @@ class Fit:
     def updateThawed(self, vals):
         for val, name in izip(vals, self.thawed):
             self.pars[name].val = val
+
+    def penaltyTrimBounds(self):
+        """For each thawed parameter, compute a penalty index to subtract from
+        likelihood, and trim parameter to range."""
+
+        penalty = 0.
+        for name in self.thawed:
+            par = self.pars[name]
+            if par.val > par.maxval:
+                penalty += (par.val-par.maxval) / (par.maxval-par.minval)
+                par.val = par.maxval
+            elif par.val < par.minval:
+                penalty += (par.minval-par.val) / (par.maxval-par.minval)
+                par.val = par.minval
+        return penalty
