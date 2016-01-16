@@ -33,10 +33,15 @@ def sendItem(sock, item):
     sock.sendall(size + pickled)
 
 def recvItem(sock):
-    """Receive a pickled item."""
-    packsize = struct.unpack('L', recvLen(sock, sizesize))[0]
-    pack = recvLen(sock, packsize)
-    return pickle.loads(pack)
+    """Receive pickled item."""
+    retn = sock.recv(64*1024)
+
+    size = struct.unpack('L', retn[:sizesize])[0]
+    retn = retn[sizesize:]
+
+    while len(retn) < size:
+        retn += sock.recv(size-len(retn))
+    return pickle.loads(retn)
 
 class ForkBase:
     """Base class for forking workers."""
@@ -67,10 +72,13 @@ class ForkBase:
                 if args == exitcode:
                     break
 
+                retn = []
                 # presumably no socket error in below
                 try:
-                    # do the work
-                    retn = self.func(args)
+                    # iterate over input and add result with index key
+                    for arg in args:
+                        res = self.func(arg)
+                        retn.append(res)
                 except Exception as e:
                     # send back an exception
                     retn = e
@@ -128,7 +136,7 @@ class ForkParallel(ForkBase):
             raise RuntimeError('Remote process is still executing')
 
         self.running = True
-        sendItem(self.sock, args)
+        sendItem(self.sock, [args])
 
     def query(self, timeout=0):
         """Return isdone,result from remote process."""
@@ -144,7 +152,7 @@ class ForkParallel(ForkBase):
             self.running = False
             if isinstance(retn, Exception):
                 raise retn
-            return True, retn
+            return True, retn[0]
         else:
             return False, None
 
@@ -213,42 +221,32 @@ class ForkQueue(ForkBase):
                 pass
 
     def execute(self, argslist):
-        """Execute the list of items on the queue."""
+        """Execute the list of items on the queue.
+
+        This version cheats by just splitting the input up into
+        equal-sized chunks.
+
+        An old version used a more sophisticated select on the
+        sockets, sending individual items. It was slower than doing
+        this. May be an idea to switch to a hybrid method, depending
+        on number of items.
+        """
 
         if not self.amparent:
             raise RuntimeError('Not parent, or not started')
 
-        results = [None]*len(argslist)
-        idxs = {}
+        # round up chunk size
+        num = len(argslist)
+        chunksize = -(-num//len(self.socks))
 
-        sockfree = set(self.socks)
-        sockbusy = set()
+        i=0
+        for s in self.socks:
+            sendItem(s, argslist[i:i+chunksize])
+            i += chunksize
 
-        def checkbusy():
-            # check results of any busy sockets
-            readsock, writesock, errsock = select.select(list(sockbusy), [], [])
-            for sock in readsock:
-                # get result and save
-                res = recvItem(sock)
-                if isinstance(res, Exception):
-                    raise res
-                results[idxs[sock]] = res
-                # move from busy to free
-                sockfree.add(sock)
-                sockbusy.remove(sock)
-
-        # iterate over input values
-        for i, args in enumerate(argslist):
-            while not sockfree:
-                checkbusy()
-
-            sock = sockfree.pop()
-            sockbusy.add(sock)
-            idxs[sock] = i
-            sendItem(sock, args)
-
-        # finish remaining jobs
-        while sockbusy:
-            checkbusy()
+        results = []
+        for s in self.socks:
+            res = recvItem(s)
+            results += res
 
         return results

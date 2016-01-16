@@ -94,7 +94,7 @@ class Fit:
             print('%10i %10.1f' % (self.ctr, like))
         self.ctr += 1
 
-        return like
+        return float(like)
 
     def doFitting(self):
         """Optimize parameters to increase likelihood."""
