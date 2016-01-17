@@ -234,18 +234,26 @@ class ForkQueue(ForkBase):
         if not self.amparent:
             raise RuntimeError('Not parent, or not started')
 
+        # calculate number sent to each sock (making sure that the
+        # number of items is <= than the number of sockets
+        numargs = len(argslist)
+
+        if numargs < len(self.socks):
+            socks = self.socks[:numargs]
+        else:
+            socks = self.socks
+
         # round up chunk size
-        num = len(argslist)
-        chunksize = -(-num//len(self.socks))
+        chunksize = -(-numargs//len(socks))
 
         # send chunks to each forked process
         sockchunks = {}
-        for idx, sock in enumerate(self.socks):
+        for idx, sock in enumerate(socks):
             sendItem(sock, argslist[idx*chunksize:(idx+1)*chunksize])
             sockchunks[sock] = idx
 
         # wait and collect responses
-        retn = [None]*num
+        retn = [None]*numargs
         while sockchunks:
             read, write, err = select.select(list(sockchunks), [], [])
             for sock in read:
