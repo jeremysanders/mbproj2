@@ -227,10 +227,8 @@ class ForkQueue(ForkBase):
         This version cheats by just splitting the input up into
         equal-sized chunks.
 
-        An old version used a more sophisticated select on the
-        sockets, sending individual items. It was slower than doing
-        this. May be an idea to switch to a hybrid method, depending
-        on number of items.
+        Maybe the chunksize should be smaller, if some chunks would
+        take much less time
         """
 
         if not self.amparent:
@@ -240,14 +238,20 @@ class ForkQueue(ForkBase):
         num = len(argslist)
         chunksize = -(-num//len(self.socks))
 
-        i=0
-        for s in self.socks:
-            sendItem(s, argslist[i:i+chunksize])
-            i += chunksize
+        # send chunks to each forked process
+        sockchunks = {}
+        for idx, sock in enumerate(self.socks):
+            sendItem(sock, argslist[idx*chunksize:(idx+1)*chunksize])
+            sockchunks[sock] = idx
 
-        results = []
-        for s in self.socks:
-            res = recvItem(s)
-            results += res
+        # wait and collect responses
+        retn = [None]*num
+        while sockchunks:
+            read, write, err = select.select(list(sockchunks), [], [])
+            for sock in read:
+                res = recvItem(sock)
+                idx = sockchunks[sock]
+                retn[idx*chunksize:(idx+1)*chunksize] = res
+                del sockchunks[sock]
 
-        return results
+        return retn
