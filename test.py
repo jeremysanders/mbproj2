@@ -93,4 +93,5 @@ print(sorted(fit.thawed))
 # timing: queue, 2 instances, no batch: 3m22.088s
 # timing: queue, 2 instances, batch in half: 2m41.44s
 # timing: queue, 4 instances, batch in 1/4: 2m24.45s
+# timing: queue, 4 instances, batch in 1/4, proto=-1: 1m59.96s
 # timing: direct: 3m34s

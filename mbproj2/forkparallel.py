@@ -28,7 +28,7 @@ def recvLen(sock, length):
 
 def sendItem(sock, item):
     """Pickle and send item using size + pickled protocol."""
-    pickled = pickle.dumps(item)
+    pickled = pickle.dumps(item, -1)
     size = struct.pack('L', len(pickled))
     sock.sendall(size + pickled)
 
@@ -41,6 +41,7 @@ def recvItem(sock):
 
     while len(retn) < size:
         retn += sock.recv(size-len(retn))
+
     return pickle.loads(retn)
 
 class ForkBase:
