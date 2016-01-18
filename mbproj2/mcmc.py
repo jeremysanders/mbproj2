@@ -10,6 +10,7 @@ import forkparallel
 
 class MultiProcessPool:
     """Use ForkQueue to evaluate multiple profiles simultaneously."""
+
     def __init__(self, func, processes):
         self.queue = forkparallel.ForkQueue(func, processes)
 
@@ -145,7 +146,7 @@ class MCMC:
             data=self.sampler.chain[:, ::thin, :].astype(N.float32),
             compression=True, shuffle=True)
         self.outfile.create_dataset(
-            'prob',
+            'likelihood',
             data=self.sampler.lnprobability[:, ::thin].astype(N.float32),
             compression=True, shuffle=True)
         self.outfile['acceptfrac'] = self.sampler.acceptance_fraction.astype(N.float32)

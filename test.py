@@ -16,13 +16,10 @@ annuli = mb.loadAnnuli(
 
 nfw = mb.CmptMassNFW(annuli)
 
-ne_cmpt = mb.CmptBinned('ne', annuli, log=True, defval=-2)
-Z_cmpt = mb.CmptFlat('Z', annuli, defval=0.3, log=True)
+ne_cmpt = mb.CmptBinned('ne', annuli, log=True, defval=-2, minval=-6., maxval=1.)
+Z_cmpt = mb.CmptFlat('Z', annuli, defval=N.log10(0.3), log=True, minval=-2., maxval=1.)
 
 model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2=0.378)
-pars = model.defPars()
-
-# pars['Z'].frozen = True
 
 band1 = mb.loadBand(
     os.path.join(indir, 'sb_profile_500_1200.dat.rebin'),
@@ -49,6 +46,9 @@ band3.backrates = N.loadtxt(
     os.path.join(indir, 'sb_bgcomb_2500_6000.dat.rebin.norm'))[:,2]
 
 data = mb.Data([band1, band2, band3], annuli)
+
+pars = model.defPars()
+mb.estimateDensityProfile(model, data, pars)
 
 fit = mb.Fit(pars, model, data)
 fit.doFitting()

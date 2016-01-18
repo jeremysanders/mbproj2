@@ -29,8 +29,12 @@ class Fit:
         self.model = model
         self.data = data
         self.showfit = showfit
+        self.refreshThawed()
+
+    def refreshThawed(self):
+        """Call this if thawed changes."""
         self.thawed = [
-            name for name, par in sorted(pars.items()) if not par.frozen]
+            name for name, par in sorted(self.pars.items()) if not par.frozen]
 
     def calcProfiles(self):
         """Predict model profiles for each band.
@@ -106,7 +110,8 @@ class Fit:
             ctr[0] += 1
             return -like
 
-        fitpars = scipy.optimize.minimize(minfunc, thawedpars)
+        fitpars = scipy.optimize.minimize(minfunc, thawedpars, method='Powell')
+        fitpars = scipy.optimize.minimize(minfunc, fitpars.x, method='Nelder-Mead')
         if self.showfit:
             print('Fit Result:   %.1f' % -fitpars.fun)
         self.updateThawed(fitpars.x)
