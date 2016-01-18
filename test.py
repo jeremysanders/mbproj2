@@ -53,45 +53,6 @@ data = mb.Data([band1, band2, band3], annuli)
 fit = mb.Fit(pars, model, data)
 fit.doFitting()
 
-
-ndim = len(fit.thawed)
-nwalkers = 200
-
-bestfit = N.array(fit.thawedParVals())
-p0 = []
-for i in xrange(nwalkers):
-    p0.append(N.random.normal(loc=bestfit, scale=N.abs(bestfit)*1e-3))
-
-import mbproj2.forkparallel
-class Pool:
-    def __init__(self, func, instances):
-        self.queue = mbproj2.forkparallel.ForkQueue(func, instances)
-
-    def map(self, func, parlist):
-        """func is ignored here."""
-        results = self.queue.execute(parlist)
-        return results
-
-func = lambda par: fit.getLikelihood(par)
-pool = Pool(func, 4)
-
-sampler = emcee.EnsembleSampler(
-    nwalkers, ndim, func, pool=pool)
-
-pos, prob, state = sampler.run_mcmc(p0, 1000)
-sampler.reset()
-
-sampler.run_mcmc(pos, 1000)
-
-with h5py.File('test.h5') as f:
-    f['chain'] = sampler.flatchain
-
-print(sorted(fit.thawed))
-
-
-
-# timing: queue, 2 instances, no batch: 3m22.088s
-# timing: queue, 2 instances, batch in half: 2m41.44s
-# timing: queue, 4 instances, batch in 1/4: 2m24.45s
-# timing: queue, 4 instances, batch in 1/4, proto=-1: 1m59.96s
-# timing: direct: 3m34s
+mcmc = mb.MCMC('out.h5', fit, walkers=200, processes=4)
+mcmc.burnIn(1000)
+mcmc.run(1000)

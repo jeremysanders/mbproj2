@@ -2,6 +2,7 @@ from __future__ import division, print_function
 from itertools import izip
 
 import scipy.optimize
+import numpy as N
 
 import utils
 
@@ -30,7 +31,6 @@ class Fit:
         self.showfit = showfit
         self.thawed = [
             name for name, par in sorted(pars.items()) if not par.frozen]
-        self.ctr = 0
 
     def calcProfiles(self):
         """Predict model profiles for each band.
@@ -89,11 +89,6 @@ class Fit:
         penalty = self.penaltyTrimBounds()
         profs = self.calcProfiles()
         like = self.profLikelihood(profs) - penalty*100
-
-        if self.ctr % 1000 == 0 and self.showfit:
-            print('%10i %10.1f' % (self.ctr, like))
-        self.ctr += 1
-
         return float(like)
 
     def doFitting(self):
@@ -102,8 +97,16 @@ class Fit:
         if self.showfit:
             print('Fitting')
         thawedpars = self.thawedParVals()
-        fitpars = scipy.optimize.minimize(
-            lambda pars: -self.getLikelihood(pars), thawedpars)
+
+        ctr = [0]
+        def minfunc(pars):
+            like = self.getLikelihood(pars)
+            if ctr[0] % 1000 == 0 and self.showfit:
+                print('%10i %10.1f' % (ctr[0], like))
+            ctr[0] += 1
+            return -like
+
+        fitpars = scipy.optimize.minimize(minfunc, thawedpars)
         if self.showfit:
             print('Fit Result:   %.1f' % -fitpars.fun)
         self.updateThawed(fitpars.x)
