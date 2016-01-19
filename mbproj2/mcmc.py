@@ -20,7 +20,12 @@ class MultiProcessPool:
 
 class MCMC:
     """For running MCMC."""
-    def __init__(self, outfilename, fit, walkers=100, processes=1):
+
+    def __init__(self, fit, walkers=100, processes=1):
+        """MCMC will run on Fit object with number of walkers given.
+
+        processes: number of simultaneous processes to compute likelihoods
+        """
 
         self.fit = fit
         self.walkers = walkers
@@ -39,22 +44,10 @@ class MCMC:
         # starting point
         self.pos0 = None
 
-        # the output file
-        if os.path.exists(outfilename):
-            raise RuntimeError('Output file %s already exists' % outfilename)
-        self.outfile = h5py.File(outfilename)
-        self.initFile()
-
-    def initFile(self):
-        """Write headers to output file."""
-
-        outfile = self.outfile
-
-        outfile.attrs['walkers'] = self.walkers
-        outfile.attrs['length'] = 0
-        outfile.attrs['thin'] = -1
-        outfile.attrs['burn'] = 0
-        outfile['thawed_params'] = self.fit.thawed
+        # header items to write to output file
+        self.header = {
+            'burn': 0,
+            }
 
     def generateInitPars(self):
         """Generate initial set of parameters from fit."""
@@ -68,7 +61,7 @@ class MCMC:
         return p0
 
     def innerburnin(self, length, autorefit):
-        """Burn in chain.
+        """(internal) Burn in chain.
 
         Returns False if new minimum found
         """
@@ -78,7 +71,7 @@ class MCMC:
         p0 = self.generateInitPars()
 
         # record period
-        self.outfile.attrs['burn'] = length
+        self.header['burn'] = length
 
         # iterate over burn-in period
         for i, result in enumerate(self.sampler.sample(
@@ -117,39 +110,61 @@ class MCMC:
             print('Restarting, as new mininimum found')
             self.fit.doFitting()
 
-    def run(self, length=1000, thin=1):
+    def run(self, length):
         """Run main chain."""
 
-        # create output
+        print('Sampling')
+        self.header['length'] = length
 
+        # initial parameters
         if self.pos0 is None:
-            print('Generating initial parameters')
+            print(' Generating initial parameters')
             p0 = self.generateInitPars()
         else:
-            print('Using burn in parameters')
+            print(' Starting from end of burn in position')
             p0 = self.pos0
 
-        # start up
-        print('Sampling')
-
+        # do sampling
         for i, result in enumerate(self.sampler.sample(
                 p0, iterations=length)):
 
             if i % 10 == 0:
                 print(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
 
-        # write output
-        self.outfile.attrs['length'] = length
-        self.outfile.attrs['thin'] = thin
-        self.outfile.create_dataset(
-            'chain',
-            data=self.sampler.chain[:, ::thin, :].astype(N.float32),
-            compression=True, shuffle=True)
-        self.outfile.create_dataset(
-            'likelihood',
-            data=self.sampler.lnprobability[:, ::thin].astype(N.float32),
-            compression=True, shuffle=True)
-        self.outfile['acceptfrac'] = self.sampler.acceptance_fraction.astype(N.float32)
-        self.outfile['lastpos'] = self.sampler.chain[:, -1, :].astype(N.float32)
+        print('Done')
 
-        print('Done!')
+    def save(self, outfilename, thin=1):
+        """Save chain to HDF5 file."""
+
+        self.header['thin'] = thin
+
+        print('Writing output data to', outfilename)
+        try:
+            os.unlink(outfilename)
+        except OSError:
+            pass
+        with h5py.File(outfilename) as f:
+            # write header entries
+            for h in sorted(self.header):
+                f.attrs[h] = self.header[h]
+
+            # write list of parameters which are thawed
+            f['thawed_params'] = self.fit.thawed
+
+            # output chain
+            f.create_dataset(
+                'chain',
+                data=self.sampler.chain[:, ::thin, :].astype(N.float32),
+                compression=True, shuffle=True)
+            # likelihoods for each walker, iteration
+            f.create_dataset(
+                'likelihood',
+                data=self.sampler.lnprobability[:, ::thin].astype(N.float32),
+                compression=True, shuffle=True)
+            # acceptance fraction
+            f['acceptfrac'] = self.sampler.acceptance_fraction.astype(N.float32)
+            # last position in chain
+            f['lastpos'] = self.sampler.chain[:, -1, :].astype(N.float32)
+
+        print('Done')
+

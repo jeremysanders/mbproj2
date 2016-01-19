@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import sys
 import os
 import numpy as N
 import scipy.optimize
@@ -48,11 +49,16 @@ band3.backrates = N.loadtxt(
 data = mb.Data([band1, band2, band3], annuli)
 
 pars = model.defPars()
+
 mb.estimateDensityProfile(model, data, pars)
 
 fit = mb.Fit(pars, model, data)
 fit.doFitting()
 
-mcmc = mb.MCMC('out.h5', fit, walkers=200, processes=4)
+
+mcmc = mb.MCMC(fit, walkers=200, processes=4)
 mcmc.burnIn(1000)
 mcmc.run(1000)
+mcmc.save('chain.hdf5')
+
+mb.replayChainPhys('chain.hdf5', 'medians.hdf5', model, pars)

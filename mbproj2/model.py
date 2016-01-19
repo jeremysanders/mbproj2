@@ -21,6 +21,11 @@ class Model:
         arrays of ne, T and Z.
         """
 
+    def computeMassProf(self, pars):
+        """Compute mass profile, given pars.
+        Returns: g, potential (both can be 0)
+        """
+
 class ModelNullPot(Model):
     """This is a form of the model without any gravitational
     potential parameters.
@@ -45,6 +50,9 @@ class ModelNullPot(Model):
         T_prof = self.T_cmpt.computeProf(pars)
         Z_prof = self.Z_cmpt.computeProf(pars)
         return ne_prof, T_prof, Z_prof
+
+    def computeMassProf(self, pars):
+        return 0*self.annuli.midpt_cm, 0*self.annuli.midpt_cm
 
 class ModelHydro(Model):
     """This is a form of the model assuming hydrostatic
@@ -124,3 +132,14 @@ class ModelHydro(Model):
         T_prof = N.array(T_prof)
 
         return ne_prof, T_prof, Z_prof
+
+    def computeMassProf(self, pars):
+        """Compute g and potential given parameters."""
+
+        g_prof, pot_prof = self.mass_cmpt.computeProf(pars)
+
+        # add accn due to gas to total acceleration
+        ne_prof = self.ne_cmpt.computeProf(pars)
+        g_prof += self.computeGasAccn(ne_prof)
+
+        return g_prof, pot_prof
