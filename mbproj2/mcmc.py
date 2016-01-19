@@ -138,7 +138,7 @@ class MCMC:
 
         self.header['thin'] = thin
 
-        print('Writing output data to', outfilename)
+        print('Saving chain to', outfilename)
         try:
             os.unlink(outfilename)
         except OSError:
@@ -167,4 +167,3 @@ class MCMC:
             f['lastpos'] = self.sampler.chain[:, -1, :].astype(N.float32)
 
         print('Done')
-

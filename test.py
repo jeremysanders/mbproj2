@@ -50,6 +50,9 @@ data = mb.Data([band1, band2, band3], annuli)
 
 pars = model.defPars()
 
+pars['Z'].val = N.log10(0.4)
+pars['Z'].frozen = True
+
 mb.estimateDensityProfile(model, data, pars)
 
 fit = mb.Fit(pars, model, data)

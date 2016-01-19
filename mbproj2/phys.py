@@ -61,17 +61,18 @@ def physFromProfs(model, pars):
         1 + 1/ne_nH) * v['T_keV'] * keV_erg
     v['tcool_yr'] = v['H_ergpcm3'] / v['L_ergpspcm3'] / yr_s
 
-    # split quantities about shell midpoint
+    # split quantities about shell midpoint, so result is independent
+    # of binning
     fi, fo = fracMassHalf(N.arange(nshells), annuli)
 
-    # cumulative (from outside) quantity, defined at midpoint
-    v['Lcuml_ergps'] = v['Lshell_ergps']*fo + N.concatenate((
-            N.cumsum(v['Lshell_ergps'][:0:-1])[::-1], [0]))
-    v['Mgascuml_Msun'] = v['Mgas_Msun']*fo + N.concatenate((
-            N.cumsum(v['Mgas_Msun'][:0:-1])[::-1], [0]))
+    v['Lcuml_ergps'] = v['Lshell_ergps']*fi + N.concatenate((
+            [0], N.cumsum(v['Lshell_ergps'])[:-1]))
+    v['Mgascuml_Msun'] = v['Mgas_Msun']*fi + N.concatenate((
+            [0], N.cumsum(v['Mgas_Msun'])[:-1]))
 
     # this is the total mass (calculated from g)
     v['Mtotcuml_Msun'] = v['g_cmps2']*annuli.massav_cm**2/G_cgs/solar_mass_g
+    #v['Mtotcuml_Msun'] = v['g_cmps2']*annuli.midpt_cm**2/G_cgs/solar_mass_g
 
     # and the gas fraction (<r)
     v['fgascuml'] = v['Mgascuml_Msun'] / v['Mtotcuml_Msun']
@@ -81,8 +82,7 @@ def physFromProfs(model, pars):
     v['H_ergpg'] = v['H_ergpcm3'] / density_gpcm3
     v['Mdotpurecool_Msunpyr'] = (
         v['Lshell_ergps'] / v['H_ergpg'] / solar_mass_g * yr_s)
-    v['Mdotpurecoolcuml_Msunpyr'] = N.cumsum(
-        v['Mdotpurecool_Msunpyr'][::-1])[::-1]
+    v['Mdotpurecoolcuml_Msunpyr'] = N.cumsum(v['Mdotpurecool_Msunpyr'])
 
     # output mdot values go here
     v['Mdot_Msunpyr'] = N.zeros(nshells)
@@ -90,12 +90,12 @@ def physFromProfs(model, pars):
 
     # change in potential and enthalpy across each shell
     delta_pot_ergpg = N.concatenate((
-            v['potential_ergpg'][:-1]-v['potential_ergpg'][1:], [0]))
+            [0], v['potential_ergpg'][1:]-v['potential_ergpg'][:-1]))
     delta_H_ergpg = N.concatenate((
-            v['H_ergpg'][:-1]-v['H_ergpg'][1:], [0]))
+            [0], v['H_ergpg'][1:]-v['H_ergpg'][:-1]))
 
     Mdotcuml_gps = 0.
-    for i in xrange(nshells-1, -1, -1):
+    for i in xrange(nshells):
         # total energy going into mdot in this shell, subtracting contribution
         # of matter which flows inwards
         E_tot_ergps = (
@@ -172,5 +172,6 @@ def replayChainPhys(chainfilename, outfilename,
     with h5py.File(outfilename) as f:
         for name in outprofs:
             f[name] = outprofs[name]
+            f[name].attrs['vsz_twod_as_oned'] = 1
 
     return outprofs

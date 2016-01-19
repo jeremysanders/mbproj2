@@ -32,6 +32,7 @@ class CmptMassNFW(CmptMass):
         c = pars['%s_conc' % self.name].val
         r200 = pars['%s_r200_Mpc' % self.name].val
         radius_cm = self.annuli.massav_cm
+        #radius_cm = self.annuli.midpt_cm
 
         # relationship between r200 and scale radius
         rs_Mpc = r200 / c
@@ -48,18 +49,20 @@ class CmptMassNFW(CmptMass):
         rho_0 = delta_c * rho_c
 
         # radius relative to scale radius
-        x = radius_cm / (rs_Mpc * Mpc_cm)
+        x = radius_cm * (1/(rs_Mpc * Mpc_cm))
+
+        # temporary quantities (for speed)
+        r_cube = (rs_Mpc * Mpc_cm)**3
+        log_1x = N.log(1.+x)
 
         # mass enclosed within x
-        mass = 4 * math.pi * rho_0 * (rs_Mpc * Mpc_cm)**3 * (
-            N.log(1.+x) - x/(1.+x))
+        mass = (4 * math.pi * rho_0) * r_cube * (log_1x - x/(1.+x))
 
         # gravitational acceleration
         g = G_cgs * mass / radius_cm**2
 
         # potential
-        Phi = -4 * math.pi * rho_0 * G_cgs * (rs_Mpc*Mpc_cm)**3 * N.log(
-            1.+x) / radius_cm
+        Phi = (-4 * math.pi * rho_0 * G_cgs) * r_cube * log_1x / radius_cm
 
         return g, Phi
 
