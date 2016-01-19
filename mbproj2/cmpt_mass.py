@@ -7,7 +7,7 @@ from cmpt import Cmpt
 from physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm
 
 class CmptMass(Cmpt):
-    def __init__(self, name, annuli, suffix=None):
+    def __init__(self, name, annuli, suffix=''):
         if suffix:
             name = '%s_%s' % (name, suffix)
         Cmpt.__init__(self, name, annuli)
@@ -51,7 +51,7 @@ class CmptMassNFW(CmptMass):
         # radius relative to scale radius
         x = radius_cm * (1/(rs_Mpc * Mpc_cm))
 
-        # temporary quantities (for speed)
+        # temporary quantities
         r_cube = (rs_Mpc * Mpc_cm)**3
         log_1x = N.log(1.+x)
 
@@ -109,3 +109,24 @@ class CmptMassKing(CmptMass):
                 N.arcsinh(N.sqrt(-1./2 + 0.5*N.sqrt(1 + r**2/r0**2))) ))
 
         return g, phi
+
+class CmptMassMulti(CmptMass):
+    """Multi-component mass profile."""
+
+    def __init__(self, name, annuli, cmpts, suffix=None):
+        CmptMass.__init__(self, name, annuli, suffix=suffix)
+        self.cmpts = cmpts
+
+    def defPars(self):
+        retn = {}
+        for cmpt in self.cmpts:
+            retn.update(cmpt.defPars())
+        return retn
+
+    def computeProfs(self, pars):
+        tot_g, tot_pot = 0, 0
+        for cmpt in self.cmpts:
+            g, pot = cmpt.computeProfs(pars)
+            tot_g += g
+            tot_pot += pot
+        return tot_g, tot_pot
