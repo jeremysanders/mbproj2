@@ -121,7 +121,7 @@ class MCMC:
             print(' Generating initial parameters')
             p0 = self.generateInitPars()
         else:
-            print(' Starting from end of burn in position')
+            print(' Starting from end of burn-in position')
             p0 = self.pos0
 
         # do sampling

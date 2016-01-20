@@ -38,7 +38,7 @@ class CmptFlat(Cmpt):
         if self.log:
             v = 10**v
 
-        return N.full(self.annuli.nshells, v)
+        return N.full(self.annuli.nshells, float(v))
 
 class CmptBinned(Cmpt):
     """A profile made of bins."""

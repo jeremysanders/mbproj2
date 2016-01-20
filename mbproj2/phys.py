@@ -111,24 +111,25 @@ def physFromProfs(model, pars):
 
     return v
 
-def replayChainPhys(chainfilename, outfilename,
-                    model, pars, burn=10, confint=68.269):
+def replayChainPhys(chainfilename,
+                    model, pars, burn=0, thin=10, confint=68.269):
     """Replay chain, compute physical quantity profiles.
 
     confint: confidence interval
-    burn: skip every N iterations in chain
+    burn: skip initial N items in chain
+    thin: skip every N iterations in chain
 
     Returns medians and confidence interval percentiles (1 sigma by
     default)
     """
 
-    print('Computing quantities from chain', chainfilename)
+    print('Computing physical quantities from chain', chainfilename)
     with h5py.File(chainfilename) as f:
         fakefit = fit.Fit(pars, model, None)
         if fakefit.thawed != list(f['thawed_params']):
             raise RuntimeError('Parameters do not match those in chain')
 
-        chain = f['chain'][:, ::burn, :]
+        chain = f['chain'][:, burn::thin, :]
         chain = chain.reshape(-1, chain.shape[2])
 
     data = defaultdict(list)
@@ -163,15 +164,34 @@ def replayChainPhys(chainfilename, outfilename,
         (annuli.midpt_cm / kpc_cm, 0.5*annuli.widths_cm / kpc_cm))
 
     print('Done quantity computation')
+    return outprofs
 
+def savePhysProfilesHDF5(outfilename, profiles):
+    """Save output profile to hdf5."""
     try:
         os.unlink(outfilename)
     except OSError:
         pass
     print('Writing', outfilename)
     with h5py.File(outfilename) as f:
-        for name in outprofs:
-            f[name] = outprofs[name]
+        for name in profiles:
+            f[name] = profiles[name]
             f[name].attrs['vsz_twod_as_oned'] = 1
 
-    return outprofs
+def savePhysProfilesText(outfilename, profiles):
+    """Save output profile as text."""
+    try:
+        os.unlink(outfilename)
+    except OSError:
+        pass
+    print('Writing', outfilename)
+    with open(outfilename, 'w') as f:
+        for name in sorted(profiles):
+            prof = profiles[name]
+            err = {1: '', 2: ',+-', 3: ',+,-'}[len(prof[0])]
+            fmt = ' '.join(['% e']*len(prof[0])) + '\n'
+
+            f.write('descriptor %s%s\n' % (name, err))
+            for line in prof:
+                f.write(fmt % tuple(line))
+            f.write('\n')

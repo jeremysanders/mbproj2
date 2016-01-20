@@ -2,7 +2,9 @@
 
 from __future__ import division, print_function
 
+import argparse
 import os
+
 import numpy as N
 import yaml
 
@@ -13,6 +15,8 @@ import cmpt_mass
 import model
 import fit
 import helpers
+import phys
+import mcmc
 
 def readProfile(arg):
     """Read a particular column from a file, ignoring blank lines."""
@@ -58,8 +62,9 @@ def constructData(pars, annuli):
         bands.append(band)
 
     return data.Data(bands, annuli)
-
-def cmptType(subpars, annuli, name, defpars):
+ 
+def constructCmpt(subpars, annuli, name, defpars):
+    """Convert input file component type to output component object."""
 
     islog = name == 'ne'
     defval = subpars.get('val', None)
@@ -92,31 +97,28 @@ def cmptType(subpars, annuli, name, defpars):
 
 def constructCmptMass(pars, annuli, defpars):
     """Construct mass component."""
+
+    def copypar(outname, insect, defmin, defmax):
+        """Update parameter outname from input section insect with
+        minimum and maximum given."""
+        defpars[outname].val = insect['val']
+        defpars[outname].minval = insect.get('min', defmin)
+        defpars[outname].maxval = insect.get('max', defmax)
+        defpars[outname].frozen = insect.get('fixed', False)
+
     pots = []
     for pot in pars['potential']:
         potp = pot['params']
         if pot['type'] == 'NFW':
             m = cmpt_mass.CmptMassNFW(annuli)
             defpars.update(m.defPars())
-            defpars['nfw_conc'].val = potp['concentration']['val']
-            defpars['nfw_conc'].minval = potp['concentration'].get('min', 0.01)
-            defpars['nfw_conc'].maxval = potp['concentration'].get('max', 200.)
-            defpars['nfw_conc'].frozen = potp['concentration'].get('fixed', False)
-            defpars['nfw_r200_Mpc'].val = potp['r200_Mpc']['val']
-            defpars['nfw_r200_Mpc'].minval = potp['r200_Mpc'].get('min', 0.01)
-            defpars['nfw_r200_Mpc'].maxval = potp['r200_Mpc'].get('max', 10.)
-            defpars['nfw_r200_Mpc'].frozen = potp['r200_Mpc'].get('fixed', False)
+            copypar('nfw_conc', potp['concentration'], 0.01, 200.)
+            copypar('nfw_r200_Mpc', potp['r200_Mpc'], 0.01, 10.)
         elif pot['type'] == 'King':
             m = cmpt_mass.CmptMassKing(annuli)
             defpars.update(m.defPars())
-            defpars['king_sigma_kmps'].val = potp['sigma_kmps']['val']
-            defpars['king_sigma_kmps'].minval = potp['sigma_kmps'].get('min', 10.)
-            defpars['king_sigma_kmps'].maxval = potp['sigma_kmps'].get('max', 5000.)
-            defpars['king_sigma_kmps'].frozen = potp['sigma_kmps'].get('fixed', False)
-            defpars['king_rcore_kpc'].val = potp['rcore_kpc']['val']
-            defpars['king_rcore_kpc'].minval = potp['rcore_kpc'].get('min', 0.1)
-            defpars['king_rcore_kpc'].maxval = potp['rcore_kpc'].get('max', 2500.)
-            defpars['king_rcore_kpc'].frozen = potp['rcore_kpc'].get('fixed', False)
+            copypar('king_sigma_kmps', potp['sigma_kmps'], 10., 5000.)
+            copypar('king_rcore_kpc', potp['rcore_kpc'], 0.1, 2500.)
         else:
             raise RuntimeError('Unsupported mass component')
 
@@ -128,11 +130,13 @@ def constructCmptMass(pars, annuli, defpars):
         return cmpt_mass.CmptMassMulti('multi', annuli, pots)
 
 def constructModel(pars, annuli):
+    """Make Model object from input parameters."""
+
     defpars = {}
     mpars = pars['model']['params']
-    ne = cmptType(mpars['ne_logpcm3'], annuli, 'ne', defpars)
-    Z = cmptType(mpars['Z_solar'], annuli, 'Z', defpars)
-    T = cmptType(mpars['T_keV'], annuli, 'T', defpars)
+    ne = constructCmpt(mpars['ne_logpcm3'], annuli, 'ne', defpars)
+    Z = constructCmpt(mpars['Z_solar'], annuli, 'Z', defpars)
+    T = constructCmpt(mpars['T_keV'], annuli, 'T', defpars)
 
     if mpars['NH_1022pcm2']['type'] != 'Flat':
         raise RuntimeError('Unsupported NH')
@@ -147,17 +151,82 @@ def constructModel(pars, annuli):
     defpars.update(mod.defPars())
     return mod, defpars
 
-def runYML(inyml):
-    ypars = yaml.load(open(inyml))
+class YMLDriver:
+    """Class wraps behaviour of mbproj1."""
 
-    theannuli = constructAnnuli(ypars)
-    thedata = constructData(ypars, theannuli)
-    themodel, thepars = constructModel(ypars, theannuli)
+    def __init__(self, inyml, threads=None):
+        self.ypars = yaml.load(open(inyml))
 
-    helpers.estimateDensityProfile(themodel, thedata, thepars)
+        self.name = self.ypars['main']['name']
+        self.chainfilename = '%s_mbp2_chain.hdf5' % self.name
+        self.threads = self.ypars['mcmc']['threads'] if not threads else threads
 
-    thefit = fit.Fit(thepars, themodel, thedata)
-    thefit.doFitting()
+        self.annuli = constructAnnuli(self.ypars)
+        self.data = constructData(self.ypars, self.annuli)
+        self.model, self.pars = constructModel(self.ypars, self.annuli)
 
-os.chdir('/data11s/jsanders/newprogs/jsproj/examples/pks0745')
-runYML('pks0745_nfw.yml')
+    def run(self):
+        """Run, producing chain."""
+        helpers.estimateDensityProfile(self.model, self.data, self.pars)
+        thefit = fit.Fit(self.pars, self.model, self.data)
+        thefit.doFitting()
+
+        y = self.ypars['mcmc']
+        m = mcmc.MCMC(thefit, walkers=y['walkers'], processes=self.threads)
+        m.burnIn(y['burn'])
+        m.run(y['length'])
+        m.save(self.chainfilename)
+
+    def medians(self, mode='hdf5', thin=10, burn=0, confint=68.269):
+        """Convert chain into physical quantities.
+
+        mode: hdf5, text or hdf5+text
+        """
+        profs = phys.replayChainPhys(
+            self.chainfilename, self.model, self.pars,
+            thin=thin, burn=burn, confint=confint)
+
+        if mode == 'hdf5' or mode == 'hdf5+text':
+            phys.savePhysProfilesHDF5('%s_mbp2_medians.hdf5' % self.name, profs)
+        if mode == 'text' or mode == 'hdf5+text':
+            phys.savePhysProfilesText('%s_mbp2_medians.txt' % self.name, profs)
+
+def ymlCmdLineParse():
+    parser = argparse.ArgumentParser(
+        description='MCMC multiband projection analysis (mbproj2)',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        'conf', help='Input configuration file')
+    parser.add_argument(
+        'mode', help='Run mode', choices=['run', 'medians'])
+    parser.add_argument(
+        '--medthin', default=10, type=int,
+        help='Thin value when using medians (after original thin)')
+    parser.add_argument(
+        '--medburn', default=0, type=int,
+        help='Extra ignore length for medians (after original thin)')
+    parser.add_argument(
+        '--medconf', default=68.269, type=float,
+        help='Confidence interval to produce for medians')
+    parser.add_argument(
+        '--medfiletype', default='hdf5', choices=['hdf5', 'text', 'hdf5+text'],
+        help='Medians output file type')
+    parser.add_argument(
+        '--override-threads', type=int,
+        help='Specify number of threads (ignoring value in conf file)')
+    parser.add_argument(
+        '--working-dir',
+        help='Working directory (defaults to current directory)')
+
+    args = parser.parse_args()
+
+    if args.working_dir:
+        os.chdir(args.working_dir)
+
+    yml = YMLDriver(args.conf, threads=args.override_threads)
+    if args.mode == 'run':
+        yml.run()
+    elif args.mode == 'medians':
+        yml.medians(
+            mode=args.medfiletype, thin=args.medthin,
+            burn=args.medburn, confint=args.medconf)

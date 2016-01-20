@@ -1,4 +1,6 @@
-"""Module to run a forked parallel process."""
+"""Module to run a forked parallel process for evalulating functions,
+one at a time (ForkParellel) or using a queue of input data
+(ForkQueue)."""
 
 from __future__ import division, print_function
 
@@ -147,7 +149,8 @@ class ForkParallel(ForkBase):
         if not self.running:
             raise RuntimeError('Remote process is already done')
 
-        readsock, writesock, errsock = select.select([self.sock], [], [], timeout)
+        readsock, writesock, errsock = select.select(
+            [self.sock], [], [], timeout)
         if readsock:
             retn = recvItem(self.sock)
             self.running = False
