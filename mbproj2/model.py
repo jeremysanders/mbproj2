@@ -101,37 +101,38 @@ class ModelHydro(Model):
         return gmean
 
     def computeProfs(self, pars):
+        """Calculate profiles assuming hydrostatic equilibrium."""
+
         # this is the outer pressure
         P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
 
         # this is acceleration and potential from mass model
-        g_prof, pot_prof = self.mass_cmpt.computeProf(pars)
+        g_cmps2, pot_ergpg = self.mass_cmpt.computeProf(pars)
 
         # input density and abundance profiles
-        ne_prof = self.ne_cmpt.computeProf(pars)
+        ne_pcm3 = self.ne_cmpt.computeProf(pars)
         # avoid hydrostatic equilibrium blowing up below
-        ne_prof = N.clip(ne_prof, 1e-99, 1e99)
-        Z_prof = self.Z_cmpt.computeProf(pars)
-        # metallicity cannot be -ve
-        Z_prof = N.clip(Z_prof, 0, 1e99)
+        ne_pcm3 = N.clip(ne_pcm3, 1e-99, 1e99)
 
-        # add to total acceleration
-        g_prof += self.computeGasAccn(ne_prof)
+        # clipped metallicity
+        Z_solar = self.Z_cmpt.computeProf(pars)
+        Z_solar = N.clip(Z_solar, 0, 1e99)
 
-        # now compute temperatures from hydrostatic equilibrium by
-        # iterating in reverse over the shells
-        T_prof = []
-        P_ergpcm3 = P0_ergpcm3
-        for ne_pcm3, width_cm, g_cmps2 in izip(
-            ne_prof[::-1], self.annuli.widths_cm[::-1], g_prof[::-1]):
+        # add (small) gas contribution to total acceleration
+        g_cmps2 += self.computeGasAccn(ne_pcm3)
 
-            T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
-            T_prof.insert(0, T_keV)
-            P_ergpcm3 += width_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
+        # changes in pressure in each bin due to hydrostatic eqbm (h*rho*g)
+        deltaP_ergpcm3 = N.concatenate((
+            (self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g))[1:],
+            [P0_ergpcm3]))
 
-        T_prof = N.array(T_prof)
+        # add up contributions inwards to get total pressure
+        P_ergpcm3 = N.cumsum(deltaP_ergpcm3[::-1])[::-1]
 
-        return ne_prof, T_prof, Z_prof
+        # calculate temperatures given pressures ad densities
+        T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
+
+        return ne_pcm3, T_keV, Z_solar
 
     def computeMassProf(self, pars):
         """Compute g and potential given parameters."""

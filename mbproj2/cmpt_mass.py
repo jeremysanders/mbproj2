@@ -29,6 +29,8 @@ class CmptMassNFW(CmptMass):
             }
 
     def computeProf(self, pars):
+        """Compute g_cmps2 and potential_ergpg profiles."""
+
         c = pars['%s_conc' % self.name].val
         r200 = pars['%s_r200_Mpc' % self.name].val
         radius_cm = self.annuli.massav_cm
