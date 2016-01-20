@@ -15,13 +15,6 @@ cosmology = mb.Cosmology(0.1028)
 annuli = mb.loadAnnuli(
     os.path.join(indir, 'sb_profile_1200_2500.dat.rebin'), cosmology)
 
-nfw = mb.CmptMassNFW(annuli)
-
-ne_cmpt = mb.CmptBinned('ne', annuli, log=True, defval=-2, minval=-6., maxval=1.)
-Z_cmpt = mb.CmptFlat('Z', annuli, defval=N.log10(0.3), log=True, minval=-2., maxval=1.)
-
-model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2=0.378)
-
 band1 = mb.loadBand(
     os.path.join(indir, 'sb_profile_500_1200.dat.rebin'),
     0.5, 1.2,
@@ -48,6 +41,10 @@ band3.backrates = N.loadtxt(
 
 data = mb.Data([band1, band2, band3], annuli)
 
+nfw = mb.CmptMassNFW(annuli)
+ne_cmpt = mb.CmptBinned('ne', annuli, log=True, defval=-2, minval=-6., maxval=1.)
+Z_cmpt = mb.CmptFlat('Z', annuli, defval=N.log10(0.3), log=True, minval=-2., maxval=1.)
+model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2=0.378)
 pars = model.defPars()
 
 pars['Z'].val = N.log10(0.4)
@@ -58,10 +55,10 @@ mb.estimateDensityProfile(model, data, pars)
 fit = mb.Fit(pars, model, data)
 fit.doFitting()
 
-
 mcmc = mb.MCMC(fit, walkers=200, processes=4)
 mcmc.burnIn(1000)
 mcmc.run(1000)
 mcmc.save('chain.hdf5')
 
-mb.replayChainPhys('chain.hdf5', 'medians.hdf5', model, pars)
+profs = mb.replayChainPhys('chain.hdf5', model, pars)
+mb.savePhysProfilesHDF5('medians.hdf5', profs)

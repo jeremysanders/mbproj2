@@ -72,7 +72,7 @@ class Band:
 
     def __init__(
         self, emin_keV, emax_keV, cts, rmf, arf, exposures,
-        backrates=None, areascales=None):
+        backrates=None, areascales=None, psfmatrix=None):
 
         self.emin_keV = emin_keV
         self.emax_keV = emax_keV
@@ -91,6 +91,8 @@ class Band:
         else:
             self.areascales = N.array(areascales)
 
+        self.psfmatrix = psfmatrix
+
     def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2):
         """Predict profile given cluster profiles."""
 
@@ -100,6 +102,10 @@ class Band:
 
         projrates = N.dot(rates, annuli.projvols_cm3)
         projrates *= self.areascales
+
+        if self.psfmatrix is not None:
+            projrates = N.dot(projrates, self.psfmatrix)
+
         projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
         projrates *= self.exposures
 
