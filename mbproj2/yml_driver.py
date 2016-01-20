@@ -89,6 +89,15 @@ def constructCmpt(subpars, annuli, name, defpars):
             interpolate=subpars.get('interpolate', False),
             log=islog)
         defpars.update(m.defPars())
+    elif subpars['type'] == 'Beta':
+        m = cmpt.CmptBeta(name, annuli)
+        defpars.update(m.defPars())
+        defpars['n0'].val = subpars.get('n0', -2.)
+        defpars['n0'].frozen = subpars.get('n0_fixed', False)
+        defpars['beta'].val = subpars.get('beta', 2./3.)
+        defpars['beta'].frozen = subpars.get('beta_fixed', False)
+        defpars['rc'].val = subpars.get('rc', 50.)
+        defpars['rc'].frozen = subpars.get('rc_fixed', False)
     elif subpars['type'] == 'Hydrostatic':
         m = 'hydrostatic'
     else:

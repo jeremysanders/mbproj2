@@ -1,7 +1,15 @@
+# Components which make up a profile. Each component has a set of
+# parameters (of type Param).
+
 from __future__ import division, print_function
-from fit import Param
+import math
+
 import numpy as N
- 
+from scipy.special import hyp2f1
+
+from fit import Param
+from physconstants import kpc_cm
+
 class Cmpt:
     """Parametrise a profile."""
 
@@ -82,3 +90,33 @@ class CmptBinned(Cmpt):
             else:
                 annidx = N.arange(self.annuli.nshells) // self.binning
                 return pvals[annidx]
+
+class CmptBeta(Cmpt):
+    """Beta model."""
+
+    def defPars(self):
+        return {
+            'n0': Param(-2., minval=-7., maxval=2.),
+            'beta': Param(2/3, minval=0., maxval=4.),
+            'rc': Param(50., minval=0., maxval=5000.),
+            }
+
+    def computeProf(self, pars):
+        n0 = 10**pars['n0'].val
+        beta = pars['beta'].val
+        rc = pars['rc'].val
+
+        # this is the average density in each shell
+        # i.e.
+        # Integrate[n0*(1 + (r/rc)^2)^(-3*beta/2)*4*Pi*r^2, r]
+        # between r1 and r2
+        def intfn(r):
+            return ( 4/3 * n0 * math.pi * r**3 *
+                     hyp2f1(3/2, 3/2*beta, 5/2, -(r/rc)**2)
+                     )
+
+        r1 = self.annuli.rin_cm * (1/kpc_cm)
+        r2 = self.annuli.rout_cm * (1/kpc_cm)
+        nav = (intfn(r2) - intfn(r1)) / (4/3*math.pi * (r2**3 - r1**3))
+
+        return nav
