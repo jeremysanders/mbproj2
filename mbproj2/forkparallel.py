@@ -114,10 +114,12 @@ class ForkParallel(ForkBase):
         if self.amparent:
             self.sock = parentsock
             childsock.close()
+            self.pid = pid
         else:
             self.sock = childsock
             parentsock.close()
             self.childLoop()
+            self.pid = None
 
     def __del__(self):
         """Tell child to close and close sockets."""
@@ -129,6 +131,9 @@ class ForkParallel(ForkBase):
                 self.sock.close()
             except socket.error:
                 pass
+        if self.pid is not None:
+            # this avoids a zombie process
+            os.waitpid(self.pid, 0)
 
     def send(self, args):
         """Send data to be processed."""
@@ -179,11 +184,13 @@ class ForkQueue(ForkBase):
         ForkBase.__init__(self, func)
 
         self.socks = []
+        self.pids = []
 
         for i in xrange(instances):
             parentsock, childsock = socket.socketpair()
 
-            if os.fork() == 0:
+            pid = os.fork()
+            if pid == 0:
                 # child process
                 parentsock.close()
                 self.sock = childsock
@@ -205,6 +212,7 @@ class ForkQueue(ForkBase):
             else:
                 # parent process - keep track of children
                 self.socks.append(parentsock)
+                self.pids.append(pid)
                 childsock.close()
 
         self.amparent = True
@@ -218,6 +226,9 @@ class ForkQueue(ForkBase):
                     sock.close()
                 except socket.error:
                     pass
+            # this avoids zombie processes
+            for pid in self.pids:
+                os.waitpid(pid, 0)
         else:
             try:
                 self.sock.close()
