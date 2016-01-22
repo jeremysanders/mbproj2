@@ -122,9 +122,8 @@ class ModelHydro(Model):
         g_cmps2 += self.computeGasAccn(ne_pcm3)
 
         # changes in pressure in each bin due to hydrostatic eqbm (h*rho*g)
-        deltaP_ergpcm3 = N.concatenate((
-            (self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g))[1:],
-            [P0_ergpcm3]))
+        deltaP_bins = self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
+        deltaP_ergpcm3 = N.concatenate((deltaP_bins[1:], [P0_ergpcm3]))
 
         # add up contributions inwards to get total pressure
         P_ergpcm3 = N.cumsum(deltaP_ergpcm3[::-1])[::-1]

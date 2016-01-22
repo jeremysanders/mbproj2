@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 from itertools import izip
+import cPickle as pickle
 
 import scipy.optimize
 import numpy as N
@@ -153,3 +154,18 @@ class Fit:
         for i, (band, prof) in enumerate(zip(self.data.bands, profs)):
             self.veuszembed.SetData('data_%i' % i, band.cts)
             self.veuszembed.SetData('model_%i' % i, prof)
+
+    def save(self, filename):
+        """Save fit."""
+
+        # don't try to pickle veusz window
+        embed = None
+        if self.veuszembed is not None:
+            embed = self.veuszembed
+            self.veuszembed = None
+
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+        if embed is not None:
+            self.veuszembed = embed
