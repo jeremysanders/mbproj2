@@ -6,6 +6,11 @@ import numpy as N
 
 import utils
 
+try:
+    import veusz.embed as veusz
+except ImportError:
+    veusz = None
+
 class Param:
     """Model parameter."""
 
@@ -24,12 +29,12 @@ class Param:
 class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
 
-    def __init__(self, pars, model, data, showfit=True):
+    def __init__(self, pars, model, data):
         self.pars = pars
         self.model = model
         self.data = data
-        self.showfit = showfit
         self.refreshThawed()
+        self.veuszembed = None
 
     def refreshThawed(self):
         """Call this if thawed changes."""
@@ -38,8 +43,6 @@ class Fit:
 
     def calcProfiles(self):
         """Predict model profiles for each band.
-
-        Returns profiles, log-likelihood
         """
 
         ne_prof, T_prof, Z_prof = self.model.computeProfs(self.pars)
@@ -95,23 +98,58 @@ class Fit:
         like = self.profLikelihood(profs) - penalty*100
         return float(like)
 
-    def doFitting(self):
-        """Optimize parameters to increase likelihood."""
+    def doFitting(self, silent=False):
+        """Optimize parameters to increase likelihood.
 
-        if self.showfit:
+        Returns likelihood
+        """
+
+        if not silent:
             print('Fitting')
         thawedpars = self.thawedParVals()
 
         ctr = [0]
         def minfunc(pars):
             like = self.getLikelihood(pars)
-            if ctr[0] % 1000 == 0 and self.showfit:
+            if ctr[0] % 1000 == 0 and not silent:
                 print('%10i %10.1f' % (ctr[0], like))
             ctr[0] += 1
             return -like
 
         fitpars = scipy.optimize.minimize(minfunc, thawedpars, method='Powell')
         fitpars = scipy.optimize.minimize(minfunc, fitpars.x, method='Nelder-Mead')
-        if self.showfit:
+        if not silent:
             print('Fit Result:   %.1f' % -fitpars.fun)
         self.updateThawed(fitpars.x)
+        return -fitpars.fun
+
+    def plotProfiles(self):
+        if veusz is None:
+            raise RuntimeError('Veusz not found')
+
+        if self.veuszembed is None:
+            embed = self.veuszembed = veusz.Embedded()
+            grid = self.veuszembed.Root.Add('page').Add('grid', columns=1)
+            xaxis = grid.Add(
+                'axis', name='x', direction='horizontal', log=True,
+                autoRange='+2%')
+
+            for i in range(len(self.data.bands)):
+                graph = grid.Add('graph', name='graph%i' % i)
+                xydata = graph.Add(
+                    'xy', marker='none', name='data',
+                    xData='radius', yData='data_%i' %i)
+                xymodel = graph.Add(
+                    'xy', marker='none', name='model', color='red',
+                    xData='radius', yData='model_%i' %i)
+
+            edges = self.data.annuli.edges_arcmin
+            self.veuszembed.SetData(
+                'radius', 0.5*(edges[1:]+edges[:-1]),
+                symerr=0.5*(edges[1:]-edges[:-1]))
+            grid.Action('zeroMargins')
+
+        profs = self.calcProfiles()
+        for i, (band, prof) in enumerate(zip(self.data.bands, profs)):
+            self.veuszembed.SetData('data_%i' % i, band.cts)
+            self.veuszembed.SetData('model_%i' % i, prof)

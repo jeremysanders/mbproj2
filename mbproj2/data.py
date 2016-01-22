@@ -49,6 +49,7 @@ def loadAnnuli(filename, cosmology, centrecol=0, hwcol=1):
     given by centrecol and bin half-width is given by hwcol
     column. cosmology is a Cosmology object."""
 
+    print('Loading annuli from', filename)
     data = N.loadtxt(filename)
     centre = data[:,centrecol]
     hw = data[:,hwcol]
@@ -115,6 +116,8 @@ def loadBand(
     filename, emin_keV, emax_keV, rmf, arf,
     radiuscol=0, hwcol=1, ctcol=2, areacol=3, expcol=4):
     """Load a band using standard data format."""
+
+    print('Loading band %g to %g keV from %s' % (emin_keV, emax_keV, filename))
 
     data = N.loadtxt(filename)
     radii = data[:,radiuscol]
