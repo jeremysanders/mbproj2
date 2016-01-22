@@ -91,6 +91,23 @@ class CmptBinned(Cmpt):
                 annidx = N.arange(self.annuli.nshells) // self.binning
                 return pvals[annidx]
 
+def betaprof(rin_cm, rout_cm, n0, beta, rc):
+    """Return beta function density profile."""
+
+    # this is the average density in each shell
+    # i.e.
+    # Integrate[n0*(1 + (r/rc)^2)^(-3*beta/2)*4*Pi*r^2, r]
+    # between r1 and r2
+    def intfn(r):
+        return ( 4/3 * n0 * math.pi * r**3 *
+                 hyp2f1(3/2, 3/2*beta, 5/2, -(r/rc)**2)
+                 )
+
+    r1 = rin_cm * (1/kpc_cm)
+    r2 = rout_cm * (1/kpc_cm)
+    nav = (intfn(r2) - intfn(r1)) / (4/3*math.pi * (r2**3 - r1**3))
+    return nav
+
 class CmptBeta(Cmpt):
     """Beta model."""
 
@@ -105,18 +122,26 @@ class CmptBeta(Cmpt):
         n0 = 10**pars['n0'].val
         beta = pars['beta'].val
         rc = pars['rc'].val
+        return betaprof(self.annuli.rin_cm, self.annuli.rout_cm, n0, beta, rc)
 
-        # this is the average density in each shell
-        # i.e.
-        # Integrate[n0*(1 + (r/rc)^2)^(-3*beta/2)*4*Pi*r^2, r]
-        # between r1 and r2
-        def intfn(r):
-            return ( 4/3 * n0 * math.pi * r**3 *
-                     hyp2f1(3/2, 3/2*beta, 5/2, -(r/rc)**2)
-                     )
+class CmptDoubleBeta(Cmpt):
+    """Double beta model."""
 
-        r1 = self.annuli.rin_cm * (1/kpc_cm)
-        r2 = self.annuli.rout_cm * (1/kpc_cm)
-        nav = (intfn(r2) - intfn(r1)) / (4/3*math.pi * (r2**3 - r1**3))
+    def defPars(self):
+        return {
+            'n0_1': Param(-2., minval=-7., maxval=2.),
+            'beta_1': Param(2/3, minval=0., maxval=4.),
+            'rc_1': Param(20., minval=0., maxval=5000.),
+            'n0_2': Param(-3., minval=-7., maxval=2.),
+            'beta_2': Param(0.5, minval=0., maxval=4.),
+            'rc_2': Param(100., minval=0., maxval=5000.),
+            }
 
-        return nav
+    def computeProf(self, pars):
+        return (
+            betaprof(
+                self.annuli.rin_cm, self.annuli.rout_cm,
+                10**pars['n0_1'].val, pars['beta_1'].val, pars['rc_1'].val) +
+            betaprof(
+                self.annuli.rin_cm, self.annuli.rout_cm,
+                10**pars['n0_2'].val, pars['beta_2'].val, pars['rc_2'].val))
