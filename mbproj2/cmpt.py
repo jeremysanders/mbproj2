@@ -91,6 +91,33 @@ class CmptBinned(Cmpt):
                 annidx = N.arange(self.annuli.nshells) // self.binning
                 return pvals[annidx]
 
+class CmptIncr(Cmpt):
+    """An increasing-inward component."""
+
+    def __init__(
+        self, name, annuli, defval=0., minval=-5, maxval=5):
+        Cmpt.__init__(self, name, annuli)
+        self.defval = defval
+        self.minval = minval
+        self.maxval = maxval
+
+        self.npars = annuli.nshells
+        # list of all the parameter names for the annuli
+        self.parnames = ['%s_%03i' % (self.name, i) for i in xrange(self.npars)]
+
+    def defPars(self):
+        return {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.parnames
+            }
+
+    def computeProf(self, pars):
+        pvals = N.array([pars[n].val for n in self.parnames])
+        pvals = 10**pvals
+
+        pvals = N.cumsum(pvals[::-1])[::-1]
+        return pvals
+
 def betaprof(rin_cm, rout_cm, n0, beta, rc):
     """Return beta function density profile."""
 
