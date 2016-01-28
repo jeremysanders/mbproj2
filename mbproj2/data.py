@@ -102,10 +102,11 @@ class Band:
             NH_1022pcm2, T_prof, Z_prof, ne_prof)
 
         projrates = N.dot(rates, annuli.projvols_cm3)
-        projrates *= self.areascales
 
         if self.psfmatrix is not None:
             projrates = N.dot(projrates, self.psfmatrix)
+
+        projrates *= self.areascales
 
         projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
         projrates *= self.exposures
