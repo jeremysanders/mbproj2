@@ -8,6 +8,7 @@ import warnings
 import numpy as N
 import h5py
 import scipy.signal
+import hashlib
 
 import utils
 
@@ -62,18 +63,22 @@ def computePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
 
     return matout
 
-def cachedPSFMatrix(psf_edge, psf_val, annuli):
+def cachedPSFMatrix(psf_edge, psf_val, annuli, oversample=4):
     """Return PSF matrix, getting cached version if possible."""
 
-    key = str(
-        utils.hashNumpy(psf_edge) ^ utils.hashNumpy(psf_val) ^
-        utils.hashNumpy(annuli.edges_arcmin))
+    h = hashlib.md5()
+    h.update(N.ascontiguousarray(psf_edge))
+    h.update(N.ascontiguousarray(psf_val))
+    h.update(N.ascontiguousarray(annuli.edges_arcmin))
+    h.update(str(oversample))
+    key = h.hexdigest()
 
     cachefile = 'psf_cache.hdf5'
 
     with utils.WithLock(cachefile+'.lockdir') as lock:
         with h5py.File(cachefile) as cache:
             if key not in cache:
-                psf = computePSFMatrix(psf_edge, psf_val, annuli)
+                psf = computePSFMatrix(
+                    psf_edge, psf_val, annuli, oversample=oversample)
                 cache[key] = psf
             return N.array(cache[key])

@@ -136,9 +136,3 @@ class AtomicWriteFile(object):
     
 def gehrels(c):
     return 1. + N.sqrt(c + 0.75)
-
-def hashNumpy(arr):
-    """Return a hash for a numpy array."""
-    cpy = N.array(arr)
-    cpy.flags.writeable = False
-    return hash(cpy.data)
