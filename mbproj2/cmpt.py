@@ -91,8 +91,68 @@ class CmptBinned(Cmpt):
                 annidx = N.arange(self.annuli.nshells) // self.binning
                 return pvals[annidx]
 
+class CmptInterpolMoveRad(Cmpt):
+    """A profile with control points, using interpolation to find the
+    values in between.
+
+    The radii of the control points are parameters (*_r_999 in log kpc)
+    """
+
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+        nradbins=5, log=False):
+
+        Cmpt.__init__(self, name, annuli)
+        self.defval = defval
+        self.minval = minval
+        self.maxval = maxval
+        self.log = log
+        self.nradbins = nradbins
+
+        # list of all the parameter names for the annuli
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+
+        # log annuli (note this breaks if the annuli of the bins were
+        # to change)
+        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
+
+    def defPars(self):
+        valspars = {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.valparnames
+            }
+
+        # log spacing in radius (with radial range fixed)
+        rlogannuli = N.log10(self.annuli.midpt_cm / kpc_cm)
+        rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
+        rpars = {
+            n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
+            for n, r in zip(self.radparnames, rlog)
+            }
+
+        # combined parameters
+        valspars.update(rpars)
+        return valspars
+
+    def computeProf(self, pars):
+        rvals = N.array([pars[n].val for n in self.radparnames])
+        vvals = N.array([pars[n].val for n in self.valparnames])
+
+        # radii might be in wrong order
+        sortidxs = N.argsort(rvals)
+        rvals = rvals[sortidxs]
+        vvals = vvals[sortidxs]
+
+        # do interpolation
+        prof = N.interp(self.logannkpc, rvals, vvals)
+        if self.log:
+            prof = 10**prof
+
+        return prof
+
 class CmptIncr(Cmpt):
-    """An increasing-inward component."""
+    """An increasing-inward log component."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-5, maxval=5):

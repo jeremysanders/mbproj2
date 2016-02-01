@@ -52,10 +52,12 @@ class MCMC:
     def generateInitPars(self):
         """Generate initial set of parameters from fit."""
 
+        thawedpars = N.array(self.fit.thawedParVals())
+        assert N.all(N.isfinite(thawedpars))
+
         p0 = []
         while len(p0) < self.walkers:
-            p = N.random.normal(
-                1, 0.001, size=self.numpars)*self.fit.thawedParVals()
+            p = N.random.normal(1, 0.001, size=self.numpars)*thawedpars
             if N.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
         return p0

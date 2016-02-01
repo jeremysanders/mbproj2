@@ -8,6 +8,7 @@ import warnings
 import numpy as N
 import h5py
 import scipy.signal
+import scipy.sparse
 import hashlib
 from itertools import izip
 
@@ -75,7 +76,7 @@ def linearComputePSFMatrix(psf_edges, psf_val, annuli, psfoversample=4, annovers
             hist, edges = N.histogram(psfrad_sqd, bins=annuli_edges_sqd, weights=psfimg_f)
             matout[i, :] += hist*subscale
 
-    return matout
+    return N.transpose(matout)
 
 def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
     """Slow form of PSF matrix calculation using image convolution.
@@ -116,7 +117,7 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
         matout[i, :] = hist
     print('Done')
 
-    return matout
+    return N.transpose(matout)
 
 def cachedPSFMatrix(psf_edge, psf_val, annuli):
     """Return PSF matrix, getting cached version if possible."""
@@ -134,4 +135,5 @@ def cachedPSFMatrix(psf_edge, psf_val, annuli):
             if key not in cache:
                 psf = linearComputePSFMatrix(psf_edge, psf_val, annuli)
                 cache[key] = psf
-            return N.array(cache[key])
+            m = N.array(cache[key])
+    return scipy.sparse.csr_matrix(m)

@@ -104,7 +104,7 @@ class Band:
         projrates = N.dot(rates, annuli.projvols_cm3)
 
         if self.psfmatrix is not None:
-            projrates = N.dot(projrates, self.psfmatrix)
+            projrates = self.psfmatrix.dot(projrates)
 
         projrates *= self.areascales
 
