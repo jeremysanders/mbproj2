@@ -145,6 +145,7 @@ def replayChainPhys(chainfilename,
             data[name].append(vals)
 
     # compute medians and errors
+    print(' Computing medians')
     outprofs = {}
     for name, vals in data.iteritems():
         # compute percentiles

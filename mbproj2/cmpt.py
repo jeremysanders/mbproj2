@@ -178,6 +178,82 @@ class CmptIncr(Cmpt):
         pvals = N.cumsum(pvals[::-1])[::-1]
         return pvals
 
+class CmptIncrMoveRad(Cmpt):
+    """A profile with control points, using interpolation to find the
+    values in between.
+
+    The radii of the control points are parameters (*_r_999 in log kpc)
+    The y values are gradients in log (cm^-3 log kpc^-1)
+
+    This model forces the density profile to increase inwards
+    """
+
+    def __init__(
+        self, name, annuli, defval=0., defouter=0., minval=-5., maxval=5.,
+        nradbins=5, log=False):
+
+        Cmpt.__init__(self, name, annuli)
+        self.defval = defval
+        self.defouter = defouter
+        self.minval = minval
+        self.maxval = maxval
+        self.log = log
+        self.nradbins = nradbins
+
+        # list of all the parameter names for the annuli
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+
+        # log annuli (note this breaks if the annuli of the bins were
+        # to change)
+        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
+        ekpc = self.annuli.edges_cm / kpc_cm
+        logekpc = N.log10(ekpc)
+        self.logwidthkpc = logekpc[1:] - logekpc[:-1]
+
+        if not N.isfinite(self.logwidthkpc[0]):
+            self.logwidthkpc[0] = logekpc[1] - 0.5*N.log10(ekpc[0]+ekpc[1])
+
+    def defPars(self):
+        valspars = {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.valparnames
+            }
+
+        # log spacing in radius (with radial range fixed)
+        rlogannuli = N.log10(self.annuli.midpt_cm / kpc_cm)
+        rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
+        rpars = {
+            n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
+            for n, r in zip(self.radparnames, rlog)
+            }
+
+        # combined parameters
+        valspars.update(rpars)
+
+        valspars['%s_outer' % self.name] = Param(
+            self.defouter, minval=self.minval, maxval=self.maxval)
+
+        return valspars
+
+    def computeProf(self, pars):
+        rvals = N.array([pars[n].val for n in self.radparnames])
+        vvals = N.array([pars[n].val for n in self.valparnames])
+
+        # radii might be in wrong order
+        sortidxs = N.argsort(rvals)
+        rvals = rvals[sortidxs]
+        vvals = vvals[sortidxs]
+
+        loggradprof = N.interp(self.logannkpc, rvals, vvals)
+        gradprof = 10**loggradprof
+
+        deltas = gradprof * self.logwidthkpc
+        outer = 10**pars['%s_outer' % self.name].val
+        prof = N.cumsum(deltas[::-1])[::-1] + outer
+
+        return prof
+
 def betaprof(rin_cm, rout_cm, n0, beta, rc):
     """Return beta function density profile."""
 

@@ -4,6 +4,7 @@ import numpy as N
 import cmpt
 import model
 import fit
+import utils
 from physconstants import kpc_cm
 
 def estimateDensityProfile(inmodel, data, modelpars):
@@ -97,11 +98,58 @@ def initialNeCmptBinnedFromBeta(
                if par[:3] == 'ne_'}
     return ne_binned_cmpt, outpars
 
+def autoRadialBins(annuli, data, minsn, minbins=2, maxbins=100):
+    """Take radial count profiles and choose bins using number of
+    counts."""
+
+    ninbins = len(annuli.massav_cm)
+
+    lastchange = 0
+    while True:
+        radii = [annuli.massav_cm[0]]
+        lastidx = 0
+        idx = 1
+        while idx < ninbins:
+            fgcts = N.sum([b.cts[lastidx:idx] for b in data.bands])
+            bgcts = N.sum([
+                    (b.backrates*b.exposures*annuli.geomarea_arcmin2*b.areascales)
+                    [lastidx:idx] for b in data.bands])
+
+            sn = (fgcts-bgcts) / utils.gehrels(fgcts)
+            if sn > minsn:
+                radii.append(annuli.massav_cm[idx])
+                lastidx = idx
+
+            idx += 1
+
+        if radii[-1] < annuli.massav_cm[-1]:
+            radii.append(annuli.massav_cm[-1])
+
+        nbins = len(radii)-1
+        if nbins < minbins:
+            if lastchange > 0:
+                raise ValueError('Loop detected in S/N binning')
+            lastchange = -1
+            minsn /= 1.1
+        elif nbins > maxbins:
+            if lastchange < 0:
+                raise ValueError('Loop detected in S/N binning')
+            lastchange = 1
+            minsn *= 1.1
+        else:
+            radii_log_kpc = N.log10(N.array(radii) / kpc_cm)
+            print('Chosen radial interpolation points using S/N %.1f' % minsn)
+            print('Radii:', radii_log_kpc)
+            return radii_log_kpc
+
 def initialNeCmptInterpolMoveRadFromBeta(
-    annuli, data, nradbins, NH_1022pcm2=0.01, Z_solar=0.3, T_keV=3.):
+    annuli, data, mode, NH_1022pcm2=0.01, Z_solar=0.3, T_keV=3.,
+    nradbins=10, minsn=30, minbins=2, maxbins=100):
     """Create a density profile with the possibility to move
     interpolated bin radii based on an isothermal beta model initial
     fit.
+
+    mode should be: 'lognbins', 'minsn'
     """
 
     print('Estimating densities using beta model')
@@ -110,9 +158,22 @@ def initialNeCmptInterpolMoveRadFromBeta(
         annuli, data, NH_1022pcm2, Z_solar, T_keV)
 
     print('Switching to interpolation model')
+
+    # create radial bins
+    rlogannuli = N.log10(annuli.midpt_cm / kpc_cm)
+    betane = ne_beta_cmpt.computeProf(betapars)
+    if mode == 'lognbins':
+        rlog = N.linspace(rlogannuli[0], rlogannuli[-1], nradbins)
+        nbins = nradbins
+    elif mode == 'minsn':
+        rlog = autoRadialBins(annuli, data, minsn, minbins=minbins, maxbins=maxbins)
+        nbins = len(rlog)
+    else:
+        raise ValueError('Invalid mode')
+
     ne_moving_cmpt = cmpt.CmptInterpolMoveRad(
         'ne', annuli, defval=-3., minval=-6, maxval=1.,
-        log=True, nradbins=nradbins)
+        log=True, nradbins=nbins)
 
     movingmodel = model.ModelNullPot(
         annuli, ne_moving_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
@@ -121,16 +182,11 @@ def initialNeCmptInterpolMoveRadFromBeta(
     movingpars = movingmodel.defPars()
     movingpars['Z'].fixed = True
     movingpars['T'].val = betapars['T'].val
-
-    # create radial bins and calculate densities at points from beta
-    # model
-    rlogannuli = N.log10(annuli.midpt_cm / kpc_cm)
-    rlog = N.linspace(rlogannuli[0], rlogannuli[-1], nradbins)
-    betane = ne_beta_cmpt.computeProf(betapars)
+    # calculate densities at bins
     nepars = N.interp(rlog, rlogannuli, betane)
 
     # update parameters
-    for i in xrange(nradbins):
+    for i in xrange(nbins):
         movingpars['ne_%03i' % i].val = nepars[i]
         movingpars['ne_r_%03i' % i].val = rlog[i]
 
