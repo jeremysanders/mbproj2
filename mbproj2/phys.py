@@ -8,7 +8,7 @@ import h5py
 
 from physconstants import (
     kpc_cm, keV_erg, ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, Mpc_cm,
-    yr_s, solar_mass_g, G_cgs, P_ne_to_T)
+    yr_s, solar_mass_g, G_cgs, P_keV_to_erg)
 import fit
 
 # we want to define the cumulative values half way in the
@@ -42,7 +42,7 @@ def physFromProfs(model, pars):
     v['T_keV'] = T_prof
     v['Z_solar'] = Z_prof
     v['NH_1022pcm2'] = N.full(nshells, model.NH_1022pcm2)
-    v['P_ergpcm3'] = T_prof * ne_prof * P_ne_to_T
+    v['P_ergpcm3'] = T_prof * ne_prof * P_keV_to_erg
     v['g_cmps2'] = g_prof
     v['potential_ergpg'] = pot_prof
 

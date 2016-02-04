@@ -3,8 +3,7 @@ from __future__ import division, print_function
 from fit import Param
 import math
 import numpy as N
-from itertools import izip
-from physconstants import ne_nH, mu_g, mu_e, P_ne_to_T, G_cgs
+from physconstants import ne_nH, mu_g, mu_e, P_keV_to_erg, G_cgs
 
 class Model:
     def __init__(self, annuli, NH_1022pcm2=None):
@@ -54,9 +53,35 @@ class ModelNullPot(Model):
     def computeMassProf(self, pars):
         return 0*self.annuli.midpt_cm, 0*self.annuli.midpt_cm
 
+def computeGasAccn(annuli, ne_prof):
+    """Compute acceleration due to gas mass for density profile
+    given."""
+
+    # mass in each shell
+    masses_g = ne_prof * annuli.vols_cm3 * (mu_e * mu_g)
+
+    # cumulative mass interior to each shell
+    Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
+
+    # this is the mean acceleration on the shell, computed as total
+    # force from interior mass divided by the total mass:
+    #   ( Int_{r=R1}^{R2} (G/r**2) *
+    #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
+    #                     4*pi*r^2*rho*dR ) / (
+    #   (4./3.*pi*(R2**3-R1**3)*rho)
+    rout, rin = annuli.rout_cm, annuli.rin_cm
+    gmean = G_cgs*(
+        3*Minterior_g +
+        ne_prof*(mu_e*mu_g*math.pi)*(
+            (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
+        rin**2 + rin*rout + rout**2 )
+
+    return gmean
+
 class ModelHydro(Model):
     """This is a form of the model assuming hydrostatic
-    equilibrium.
+    equilibrium. The temperature is calculated from the density and
+    pressure computed from the mass model.
 
     Temperature is calculated assuming hydrostatic equilibrium.
     Included parameter is the outer pressure Pout
@@ -69,39 +94,18 @@ class ModelHydro(Model):
         self.Z_cmpt = Z_cmpt
 
     def defPars(self):
+        """Return default model parameters dict."""
         pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=0.)}
         pars.update(self.mass_cmpt.defPars())
         pars.update(self.ne_cmpt.defPars())
         pars.update(self.Z_cmpt.defPars())
         return pars
 
-    def computeGasAccn(self, ne_prof):
-        """Compute acceleration due to gas mass for density profile given.
-        """
-
-        # mass in each shell
-        masses_g = ne_prof * self.annuli.vols_cm3 * (mu_e * mu_g)
-
-        # cumulative mass interior to each shell
-        Minterior_g = N.cumsum( N.hstack( ([0.], masses_g[:-1]) ) )
-
-        # this is the mean acceleration on the shell, computed as total
-        # force from interior mass divided by the total mass:
-        #   ( Int_{r=R1}^{R2} (G/r**2) *
-        #                     (M + Int_{R=R1}^{R} 4*pi*R^2*rho*dR) *
-        #                     4*pi*r^2*rho*dR ) / (
-        #   (4./3.*pi*(R2**3-R1**3)*rho)
-        rout, rin = self.annuli.rout_cm, self.annuli.rin_cm
-        gmean = G_cgs*(
-            3*Minterior_g +
-            ne_prof*(mu_e*mu_g*math.pi)*(
-                (rout-rin)*((rout+rin)**2 + 2*rin**2)))  / (
-            rin**2 + rin*rout + rout**2 )
-
-        return gmean
-
     def computeProfs(self, pars):
-        """Calculate profiles assuming hydrostatic equilibrium."""
+        """Calculate profiles assuming hydrostatic equilibrium.
+
+        Returns ne_pcm3, T_keV, Z_solar
+        """
 
         # this is the outer pressure
         P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
@@ -119,7 +123,7 @@ class ModelHydro(Model):
         Z_solar = N.clip(Z_solar, 0, 1e99)
 
         # add (small) gas contribution to total acceleration
-        g_cmps2 += self.computeGasAccn(ne_pcm3)
+        g_cmps2 += computeGasAccn(self.annuli, ne_pcm3)
 
         # changes in pressure in each bin due to hydrostatic eqbm (h*rho*g)
         deltaP_bins = self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
@@ -129,7 +133,7 @@ class ModelHydro(Model):
         P_ergpcm3 = N.cumsum(deltaP_ergpcm3[::-1])[::-1]
 
         # calculate temperatures given pressures ad densities
-        T_keV = P_ergpcm3 / (P_ne_to_T * ne_pcm3)
+        T_keV = P_ergpcm3 / (P_keV_to_erg * ne_pcm3)
 
         return ne_pcm3, T_keV, Z_solar
 
@@ -140,6 +144,6 @@ class ModelHydro(Model):
 
         # add accn due to gas to total acceleration
         ne_prof = self.ne_cmpt.computeProf(pars)
-        g_prof += self.computeGasAccn(ne_prof)
+        g_prof += computeGasAccn(self.annuli, ne_prof)
 
         return g_prof, pot_prof
