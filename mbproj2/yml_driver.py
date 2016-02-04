@@ -4,6 +4,7 @@ from __future__ import division, print_function
 
 import argparse
 import os
+import cPickle as pickle
 
 import numpy as N
 import yaml
@@ -183,6 +184,11 @@ class YMLDriver:
         y = self.ypars['mcmc']
         m = mcmc.MCMC(thefit, walkers=y['walkers'], processes=self.threads)
         m.burnIn(y['burn'])
+
+        # write pickle containing best fit to file
+        with open('%s_mbp2_fit.pickle' % self.name, 'wb') as f:
+            pickle.dump(thefit, f, -1)
+
         m.run(y['length'])
         m.save(self.chainfilename)
 
