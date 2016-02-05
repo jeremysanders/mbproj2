@@ -147,3 +147,82 @@ class ModelHydro(Model):
         g_prof += computeGasAccn(self.annuli, ne_prof)
 
         return g_prof, pot_prof
+
+class ModelHydroEntropy(Model):
+    """This is a form of the model assuming hydrostatic equilibrium,
+    but parameterising using the entropy (K), not density.
+
+    Temperature is calculated assuming hydrostatic equilibrium.
+    Included parameter is the outer pressure Pout
+    """
+
+    def __init__(
+        self, annuli, mass_cmpt, K_cmpt, Z_cmpt, NH_1022pcm2=None, self_gravity=True):
+
+        Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
+        self.mass_cmpt = mass_cmpt
+        self.K_cmpt = K_cmpt
+        self.Z_cmpt = Z_cmpt
+        self.self_gravity = self_gravity
+
+    def defPars(self):
+        pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=0.)}
+        pars.update(self.mass_cmpt.defPars())
+        pars.update(self.K_cmpt.defPars())
+        pars.update(self.Z_cmpt.defPars())
+        return pars
+
+    def iterateComputeProfs(self, pars):
+        """Iteratively compute output profiles.
+
+        This is iterative because if we want to include gas self
+        gravity, this changes g."""
+
+        # this is the outer pressure
+        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
+
+        # clipped metallicity
+        Z_solar = self.Z_cmpt.computeProf(pars)
+        Z_solar = N.clip(Z_solar, 0, 1e99)
+
+        # compute the entropy and clip to avoid numerical issues
+        Ke_keVcm2 = self.K_cmpt.computeProf(pars)
+        Ke_keVcm2 = N.clip(Ke_keVcm2, 1e-99, 1e99)
+
+        # this is acceleration and potential from mass model
+        g_cmps2, pot_ergpg = self.mass_cmpt.computeProf(pars)
+
+        # do we bother working out the effects of self-gravity?  we
+        # loop round several times if we want to - TODO: check whether
+        # 4 is a reasonable number
+        iters = 4 if self.self_gravity else 1
+
+        # initial density for iteration
+        ne_pcm3 = N.zeros(self.annuli.nshells)
+
+        # repeatedly calculate density, then include self gravity
+        for i in xrange(iters):
+            # add (small) gas contribution to total acceleration
+            tot_g_cmps2 = g_cmps2 + computeGasAccn(self.annuli, ne_pcm3)
+
+            ne_pcm3 = []
+            P_ergpcm3 = P0_ergpcm3
+            for i in xrange(self.annuli.nshells-1, -1, -1):
+                ne = (P_ergpcm3 / P_keV_to_erg / Ke_keVcm2[i])**(3./5.)
+                P_ergpcm3 += self.annuli.widths_cm[i] * tot_g_cmps2[i] * ne * (mu_e * mu_g)
+                ne_pcm3.insert(0, ne)
+            ne_pcm3 = N.array(ne_pcm3)
+
+        T_keV = ne_pcm3**(2./3.) * Ke_keVcm2
+
+        return ne_pcm3, T_keV, Z_solar, tot_g_cmps2, pot_ergpg
+
+    def computeProfs(self, pars):
+        """Calculate profiles assuming hydrostatic equilibrium."""
+        ne_prof, T_prof, Z_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
+        return ne_prof, T_prof, Z_prof
+
+    def computeMassProf(self, pars):
+        """Compute g and potential given parameters."""
+        ne_prof, T_prof, Z_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
+        return g_prof, pot_prof
