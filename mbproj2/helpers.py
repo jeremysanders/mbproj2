@@ -163,7 +163,8 @@ def initialNeCmptInterpolMoveRadFromBeta(
 
     # create radial bins
     rlogannuli = N.log10(annuli.midpt_cm / kpc_cm)
-    betane = ne_beta_cmpt.computeProf(betapars)
+    betane = N.log10(ne_beta_cmpt.computeProf(betapars))
+
     if mode == 'lognbins':
         rlog = N.linspace(rlogannuli[0], rlogannuli[-1], nradbins)
         nbins = nradbins

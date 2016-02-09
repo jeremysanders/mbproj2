@@ -158,7 +158,11 @@ def constructModel(pars, annuli):
     else:
         mod = model.ModelNullPot(annuli, ne, T, Z, NH_1022pcm2=NH)
 
-    defpars.update(mod.defPars())
+    moddefpars = mod.defPars()
+    for par in moddefpars:
+        if par not in defpars:
+            defpars[par] = moddefpars[par]
+
     return mod, defpars
 
 class YMLDriver:
@@ -190,6 +194,7 @@ class YMLDriver:
             pickle.dump(thefit, f, -1)
 
         m.run(y['length'])
+
         m.save(self.chainfilename)
 
     def medians(self, mode='hdf5', thin=10, burn=0, confint=68.269):
