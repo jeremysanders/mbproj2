@@ -1,3 +1,6 @@
+# Clusters models built from components. Includes models which assume
+# hydrostatic equilibrium and those that don't
+
 from __future__ import division, print_function
 
 from fit import Param
@@ -181,10 +184,6 @@ class ModelHydroEntropy(Model):
         # this is the outer pressure
         P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
 
-        # clipped metallicity
-        Z_solar = self.Z_cmpt.computeProf(pars)
-        Z_solar = N.clip(Z_solar, 0, 1e99)
-
         # compute the entropy and clip to avoid numerical issues
         Ke_keVcm2 = self.K_cmpt.computeProf(pars)
         Ke_keVcm2 = N.clip(Ke_keVcm2, 1e-99, 1e99)
@@ -215,14 +214,19 @@ class ModelHydroEntropy(Model):
 
         T_keV = ne_pcm3**(2./3.) * Ke_keVcm2
 
-        return ne_pcm3, T_keV, Z_solar, tot_g_cmps2, pot_ergpg
+        return ne_pcm3, T_keV, tot_g_cmps2, pot_ergpg
 
     def computeProfs(self, pars):
         """Calculate profiles assuming hydrostatic equilibrium."""
-        ne_prof, T_prof, Z_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
+
+        ne_prof, T_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
+
+        # clipped metallicity
+        Z_prof = N.clip(self.Z_cmpt.computeProf(pars), 0., 1e99)
+
         return ne_prof, T_prof, Z_prof
 
     def computeMassProf(self, pars):
         """Compute g and potential given parameters."""
-        ne_prof, T_prof, Z_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
+        ne_prof, T_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
         return g_prof, pot_prof

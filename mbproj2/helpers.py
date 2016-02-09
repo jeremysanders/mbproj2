@@ -40,7 +40,7 @@ def estimateDensityProfile(inmodel, data, modelpars):
 
     print('Done estimating densities:', ' '.join(txt))
 
-def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV):
+def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
     """Fit beta density model with isothermal cluster.
 
     Return ne_cmpt, T_cmpt, Z_cmpt, pars
@@ -58,8 +58,8 @@ def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV):
     betapars['Z'].fixed = True
 
     betafit = fit.Fit(betapars, betamodel, data)
-    betafit.doFitting(silent=True)
-    like = betafit.doFitting(silent=True)
+    betafit.doFitting(silent=silent)
+    like = betafit.doFitting(silent=silent)
     print(' Log likelihood (beta): %.1f' % like)
 
     return ne_beta_cmpt, T_cmpt, Z_cmpt, betapars
@@ -144,10 +144,12 @@ def autoRadialBins(annuli, data, minsn, minbins=2, maxbins=100):
 
 def initialNeCmptInterpolMoveRadFromBeta(
     annuli, data, mode, NH_1022pcm2=0.01, Z_solar=0.3, T_keV=3.,
-    nradbins=10, minsn=30, minbins=2, maxbins=100):
+        nradbins=10, minsn=30, minbins=2, maxbins=100, silent=True):
     """Create a density profile with the possibility to move
     interpolated bin radii based on an isothermal beta model initial
     fit.
+
+    returns: density component, default density parameters
 
     mode should be: 'lognbins', 'minsn'
     """
@@ -155,7 +157,7 @@ def initialNeCmptInterpolMoveRadFromBeta(
     print('Estimating densities using beta model')
 
     ne_beta_cmpt, T_cmpt, Z_cmpt, betapars = fitBeta(
-        annuli, data, NH_1022pcm2, Z_solar, T_keV)
+        annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=silent)
 
     print('Switching to interpolation model')
 
@@ -192,8 +194,8 @@ def initialNeCmptInterpolMoveRadFromBeta(
 
     # do fitting of new model
     movingfit = fit.Fit(movingpars, movingmodel, data)
-    movingfit.doFitting(silent=True)
-    like = movingfit.doFitting(silent=True)
+    movingfit.doFitting(silent=silent)
+    like = movingfit.doFitting(silent=silent)
     print(' Log likelihood (full): %.1f' % like)
 
     print('Estimated profile:', N.log10(ne_moving_cmpt.computeProf(movingpars)))
