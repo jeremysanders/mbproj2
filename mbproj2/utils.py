@@ -31,14 +31,27 @@ def projectionVolume(R1, R2, y1, y2):
     return (2/3) * N.pi * ((p1**3 - p2**3) + (p4**3 - p3**3))
 
 def projectionVolumeMatrix(radii):
-    """Calculate volumes (front and back) using a matrix calculation."""
+    """Calculate volumes (front and back) using a matrix calculation.
+
+    Dot matrix with emissivity array to compute projected surface
+    brightnesses.
+
+    Output looks like this:
+    >>> utils.projectionVolumeMatrix(N.arange(5))
+    array([[  4.1887902 ,   7.55593906,   6.57110358,   6.4200197 ],
+           [  0.        ,  21.76559237,  26.1838121 ,  21.27257712],
+           [  0.        ,   0.        ,  46.83209821,  49.71516053],
+           [  0.        ,   0.        ,   0.        ,  77.57748023]])
+
+    """
+
     i_s, j_s = N.indices((len(radii)-1, len(radii)-1))
 
     radii_2 = radii**2
-    R1_2 = radii_2[i_s]
-    R2_2 = radii_2[i_s+1]
-    y1_2 = radii_2[j_s]
-    y2_2 = radii_2[j_s+1]
+    y1_2 = radii_2[i_s]
+    y2_2 = radii_2[i_s+1]
+    R1_2 = radii_2[j_s]
+    R2_2 = radii_2[j_s+1]
 
     p1 = (R1_2-y2_2).clip(0)
     p2 = (R1_2-y1_2).clip(0)

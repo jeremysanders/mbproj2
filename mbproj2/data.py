@@ -101,7 +101,7 @@ class Band:
             self.rmf, self.arf, self.emin_keV, self.emax_keV,
             NH_1022pcm2, T_prof, Z_prof, ne_prof)
 
-        projrates = N.dot(rates, annuli.projvols_cm3)
+        projrates = annuli.projvols_cm3.dot(rates)
 
         if self.psfmatrix is not None:
             projrates = self.psfmatrix.dot(projrates)
