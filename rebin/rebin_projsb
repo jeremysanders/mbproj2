@@ -46,11 +46,11 @@ def doBinning(fgprofs, bgprofs, snthresh):
     nbins = len(fgprofs.radii)
     outradii = []
     lastidx = 0
-    for i in xrange(nbins):
-        totfgcts = fgprofs.cts[lastidx:i+1].sum()
-        totfgareaexp = fgprofs.areaexp[lastidx:i+1].sum()
-        totbgcts = bgprofs.cts[lastidx:i+1].sum()
-        totbgareaexp = bgprofs.areaexp[lastidx:i+1].sum()
+    for i in xrange(1, nbins+1):
+        totfgcts = fgprofs.cts[lastidx:i].sum()
+        totfgareaexp = fgprofs.areaexp[lastidx:i].sum()
+        totbgcts = bgprofs.cts[lastidx:i].sum()
+        totbgareaexp = bgprofs.areaexp[lastidx:i].sum()
 
         signal = totfgcts/totfgareaexp - totbgcts/totbgareaexp
         noise = math.sqrt(
@@ -58,7 +58,7 @@ def doBinning(fgprofs, bgprofs, snthresh):
             (gehrels(totbgcts)/totbgareaexp)**2)
 
         sn = signal / noise
-        if sn >= snthresh or i == nbins-1:
+        if sn >= snthresh or i == nbins:
             outradii.append(i)
             lastidx = i
 
@@ -74,10 +74,10 @@ def writeBinnedProfile(infilename, outfilename, radii, header=''):
     lastidx = 0
     for i in radii:
         inrad = indata[lastidx,0]-indata[lastidx,1]
-        outrad = indata[i,0]+indata[i,1]
-        cts = indata[lastidx:i+1, 2]
-        area = indata[lastidx:i+1, 3]
-        exp = indata[lastidx:i+1, 4]
+        outrad = indata[i-1,0]+indata[i-1,1]
+        cts = indata[lastidx:i, 2]
+        area = indata[lastidx:i, 3]
+        exp = indata[lastidx:i, 4]
 
         avexp = (area*exp).sum() / area.sum()
 
