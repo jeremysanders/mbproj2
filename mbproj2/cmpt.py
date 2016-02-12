@@ -25,6 +25,11 @@ class Cmpt:
         """Return profile for annuli given."""
         pass
 
+    def prior(self, pars):
+        """Given parameters, compute prior.
+        (returns log likelihood)"""
+        return 0.
+
 class CmptFlat(Cmpt):
     """A flat profile."""
 
@@ -90,6 +95,39 @@ class CmptBinned(Cmpt):
             else:
                 annidx = N.arange(self.annuli.nshells) // self.binning
                 return pvals[annidx]
+
+class CmptBinnedJumpPrior(CmptBinned):
+    """A binned component using a prior that the values shouldn't jump
+    by more than the factor given."""
+
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+        binning=1, interpolate=False, log=False, priorjump=0.):
+
+        CmptBinned.__init__(
+            self, name, annuli, defval=defval, minval=minval,
+            maxval=maxval, binning=binning, interpolate=interpolate, log=log)
+        self.priorjump = priorjump
+
+    def prior(self, pars):
+        if self.priorjump <= 0:
+            return 0.
+
+        # this is a hacky prior to ensure that the values in the
+        # profile do not jump by more than a factor of jumpprior
+        pvals = N.array([pars[n].val for n in self.parnames])
+        if self.log:
+            pvals = 10**pvals
+
+        priorval = 0
+        lastp = pvals[0]
+        for p in pvals[1:]:
+            if abs(p/lastp-1) > self.priorjump:
+                priorval -= abs(p/lastp-1)/self.priorjump
+            elif abs(lastp/p-1) > self.priorjump:
+                priorval -= abs(lastp/p-1)/self.priorjump
+            lastp = p
+        return priorval
 
 class CmptInterpolMoveRad(Cmpt):
     """A profile with control points, using interpolation to find the

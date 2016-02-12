@@ -28,6 +28,12 @@ class Model:
         Returns: g, potential (both can be 0)
         """
 
+    def prior(self, pars):
+        """Compute prior, given parameters.
+
+        Returns log likelihood."""
+        return 0.
+
 class ModelNullPot(Model):
     """This is a form of the model without any gravitational
     potential parameters.
@@ -55,6 +61,13 @@ class ModelNullPot(Model):
 
     def computeMassProf(self, pars):
         return 0*self.annuli.midpt_cm, 0*self.annuli.midpt_cm
+
+    def prior(self, pars):
+        return (
+            self.T_cmpt.prior(pars) +
+            self.ne_cmpt.prior(pars) +
+            self.Z_cmpt.prior(pars)
+            )
 
 def computeGasAccn(annuli, ne_prof):
     """Compute acceleration due to gas mass for density profile
@@ -151,6 +164,13 @@ class ModelHydro(Model):
 
         return g_prof, pot_prof
 
+    def prior(self, pars):
+        return (
+            self.mass_cmpt.prior(pars) +
+            self.ne_cmpt.prior(pars) +
+            self.Z_cmpt.prior(pars)
+            )
+
 class ModelHydroEntropy(Model):
     """This is a form of the model assuming hydrostatic equilibrium,
     but parameterising using the entropy (K), not density.
@@ -230,3 +250,10 @@ class ModelHydroEntropy(Model):
         """Compute g and potential given parameters."""
         ne_prof, T_prof, g_prof, pot_prof = self.iterateComputeProfs(pars)
         return g_prof, pot_prof
+
+    def prior(self, pars):
+        return (
+            self.mass_cmpt.prior(pars) +
+            self.K_cmpt.prior(pars) +
+            self.Z_cmpt.prior(pars)
+            )

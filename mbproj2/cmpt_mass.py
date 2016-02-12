@@ -17,6 +17,10 @@ class CmptMassNFW(CmptMass):
     Useful detals here:
     http://nedwww.ipac.caltech.edu/level5/Sept04/Brainerd/Brainerd5.html
     and Lisa Voigt's thesis
+
+    Parameters:
+    nfw_logconc: log10 concentration
+    nfw_r200_logMpc: log10 r200 in Mpc
     """
 
     def __init__(self, annuli, suffix=None):
@@ -24,15 +28,15 @@ class CmptMassNFW(CmptMass):
 
     def defPars(self):
         return {
-            '%s_conc' % self.name: Param(2., minval=0.01, maxval=100.),
-            '%s_r200_Mpc' % self.name: Param(2., minval=0.1, maxval=10.)
+            '%s_logconc' % self.name: Param(2., minval=-2., maxval=2.),
+            '%s_r200_logMpc' % self.name: Param(0., minval=-1., maxval=1.)
             }
 
     def computeProf(self, pars):
         """Compute g_cmps2 and potential_ergpg profiles."""
 
-        c = pars['%s_conc' % self.name].val
-        r200 = pars['%s_r200_Mpc' % self.name].val
+        c = 10**(pars['%s_logconc' % self.name].val)
+        r200 = 10**(pars['%s_r200_logMpc' % self.name].val)
         radius_cm = self.annuli.massav_cm
         #radius_cm = self.annuli.midpt_cm
 
@@ -77,6 +81,10 @@ class CmptMassKing(CmptMass):
     r0 = sqrt(9*sigma**2/(4*Pi*G*rho0))
 
     We define rho in terms of r0 and sigma
+
+    Parameters:
+    king_sigma_logkmps: sigma in log10 km/s
+    king_rcore_logkpc: rcore in log10 kpc
     """
 
     def __init__(self, annuli, suffix=None):
@@ -84,13 +92,13 @@ class CmptMassKing(CmptMass):
 
     def defPars(self):
         return {
-            '%s_sigma_kmps' % self.name: Param(600., minval=1, maxval=5000.),
-            '%s_rcore_kpc' % self.name: Param(20., minval=0.1, maxval=5000.)
+            '%s_sigma_logkmps' % self.name: Param(2.5, minval=0., maxval=3.7),
+            '%s_rcore_logkpc' % self.name: Param(1.3, minval=-1., maxval=3.4)
             }
 
     def computeProf(self, pars):
-        sigma_cmps = pars['%s_sigma_kmps' % self.name].val * km_cm
-        r0 = pars['%s_rcore_kpc' % self.name].val * kpc_cm
+        sigma_cmps = 10**(pars['%s_sigma_logkmps' % self.name].val) * km_cm
+        r0 = 10**(pars['%s_rcore_logkpc' % self.name].val) * kpc_cm
 
         # calculate central density from r0 and sigma
         rho0 = 9*sigma_cmps**2 / (4 * math.pi * G_cgs * r0**2)

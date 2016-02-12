@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import argparse
 import os
 import cPickle as pickle
+import math
 
 import numpy as N
 import yaml
@@ -82,7 +83,7 @@ def constructCmpt(subpars, annuli, name, defpars):
         defpars[name].val = defval
         defpars[name].frozen = subpars.get('fixed', True)
     elif subpars['type'] == 'Profile':
-        m = cmpt.CmptBinned(
+        m = cmpt.CmptBinnedJumpPrior(
             name, annuli,
             defval=defval,
             minval=minval, maxval=maxval,
@@ -108,12 +109,15 @@ def constructCmpt(subpars, annuli, name, defpars):
 def constructCmptMass(pars, annuli, defpars):
     """Construct mass component."""
 
-    def copypar(outname, insect, defmin, defmax):
+    def copypar(outname, insect, defmin, defmax, log=False):
         """Update parameter outname from input section insect with
         minimum and maximum given."""
-        defpars[outname].val = insect['val']
-        defpars[outname].minval = insect.get('min', defmin)
-        defpars[outname].maxval = insect.get('max', defmax)
+        def lf(val):
+            return math.log10(val) if log else val
+
+        defpars[outname].val = lf(insect['val'])
+        defpars[outname].minval = lf(insect.get('min', defmin))
+        defpars[outname].maxval = lf(insect.get('max', defmax))
         defpars[outname].frozen = insect.get('fixed', False)
 
     pots = []
@@ -122,13 +126,20 @@ def constructCmptMass(pars, annuli, defpars):
         if pot['type'] == 'NFW':
             m = cmpt_mass.CmptMassNFW(annuli)
             defpars.update(m.defPars())
-            copypar('nfw_conc', potp['concentration'], 0.01, 200.)
-            copypar('nfw_r200_Mpc', potp['r200_Mpc'], 0.01, 10.)
+            copypar('nfw_logconc', potp['concentration'],
+                    0.01, 200., log=True)
+            copypar('nfw_r200_logMpc', potp['r200_Mpc'],
+                    0.01, 10., log=True)
         elif pot['type'] == 'King':
             m = cmpt_mass.CmptMassKing(annuli)
             defpars.update(m.defPars())
-            copypar('king_sigma_kmps', potp['sigma_kmps'], 10., 5000.)
-            copypar('king_rcore_kpc', potp['rcore_kpc'], 0.1, 2500.)
+            copypar(
+                'king_sigma_logkmps', potp['sigma_kmps'],
+                10., 5000., log=True)
+            copypar(
+                'king_rcore_logkpc', potp['rcore_kpc'],
+                0.1, 2500., log=True)
+
         else:
             raise RuntimeError('Unsupported mass component')
 
@@ -147,6 +158,11 @@ def constructModel(pars, annuli):
     ne = constructCmpt(mpars['ne_logpcm3'], annuli, 'ne', defpars)
     Z = constructCmpt(mpars['Z_solar'], annuli, 'Z', defpars)
     T = constructCmpt(mpars['T_keV'], annuli, 'T', defpars)
+
+    # densities should not jump by more than a factor of 10
+    # this resolves oscillations in the fitting
+    # ugly hack?
+    ne.priorjump = 10.
 
     if mpars['NH_1022pcm2']['type'] != 'Flat':
         raise RuntimeError('Unsupported NH')
@@ -183,6 +199,21 @@ class YMLDriver:
         """Run, producing chain."""
         helpers.estimateDensityProfile(self.model, self.data, self.pars)
         thefit = fit.Fit(self.pars, self.model, self.data)
+
+        # first fit, freezing density
+        print("Fitting with frozen densities")
+        for name, par in self.pars.iteritems():
+            if name[:3] == 'ne_':
+                par.frozen = True
+        thefit.refreshThawed()
+        thefit.doFitting()
+
+        # then thaw again
+        print("Thawing densities")
+        for name, par in self.pars.iteritems():
+            if name[:3] == 'ne_':
+                par.frozen = False
+        thefit.refreshThawed()
         thefit.doFitting()
 
         y = self.ypars['mcmc']

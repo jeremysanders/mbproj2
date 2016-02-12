@@ -12,6 +12,8 @@ try:
 except ImportError:
     veusz = None
 
+debugfit = True
+
 class Param:
     """Model parameter."""
 
@@ -36,6 +38,7 @@ class Fit:
         self.data = data
         self.refreshThawed()
         self.veuszembed = None
+        self.bestlike = -1e99
 
     def refreshThawed(self):
         """Call this if thawed changes."""
@@ -58,7 +61,9 @@ class Fit:
         return profs
 
     def profLikelihood(self, predprofs):
-        """Given predicted profiles, calculate likelihood."""
+        """Given predicted profiles, calculate likelihood.
+        (this doesn't include the prior)
+        """
 
         likelihood = 0.
         for band, predprof in izip(self.data.bands, predprofs):
@@ -91,23 +96,38 @@ class Fit:
     def getLikelihood(self, vals):
         """Get likelihood for paramters given.  Parameters are trimmed to
         their allowed range, applying a penalty
+
+        Also include are the priors from the various components
         """
 
         self.updateThawed(vals)
         penalty = self.penaltyTrimBounds()
         profs = self.calcProfiles()
         like = self.profLikelihood(profs) - penalty*100
-        return float(like)
+        prior = self.model.prior(self.pars)
 
-    def doFitting(self, silent=False):
+        totlike = float(like+prior)
+
+        if debugfit and (totlike-self.bestlike) > 0.1:
+            self.bestlike = totlike
+            #print("Better fit %.1f" % totlike)
+            with utils.AtomicWriteFile("fit.dat") as fout:
+                print(
+                    "likelihood = %g + %g = %g" % (like, prior, totlike),
+                    file=fout)
+                for p in sorted(self.pars):
+                    print("%s = %s" % (p, self.pars[p]), file=fout)
+
+        return totlike
+
+    def doFitting(self, silent=False, maxiter=10):
         """Optimize parameters to increase likelihood.
 
         Returns likelihood
         """
 
         if not silent:
-            print('Fitting')
-        thawedpars = self.thawedParVals()
+            print('Fitting (Iteration 1)')
 
         ctr = [0]
         def minfunc(pars):
@@ -117,12 +137,26 @@ class Fit:
             ctr[0] += 1
             return -like
 
-        fitpars = scipy.optimize.minimize(minfunc, thawedpars, method='Powell')
-        fitpars = scipy.optimize.minimize(minfunc, fitpars.x, method='Nelder-Mead')
+        thawedpars = self.thawedParVals()
+        lastlike = self.getLikelihood(thawedpars)
+        fpars = thawedpars
+        for i in xrange(maxiter):
+            fitpars = scipy.optimize.minimize(
+                minfunc, fpars, method='Powell')
+            fitpars = scipy.optimize.minimize(
+                minfunc, fitpars.x, method='Nelder-Mead')
+            like = -fitpars.fun
+            fpars = fitpars.x
+            if abs(lastlike-like) < 0.1:
+                break
+            if not silent:
+                print('Iteration %i' % (i+2))
+            lastlike = like
+
         if not silent:
-            print('Fit Result:   %.1f' % -fitpars.fun)
-        self.updateThawed(fitpars.x)
-        return -fitpars.fun
+            print('Fit Result:   %.1f' % like)
+        self.updateThawed(fpars)
+        return like
 
     def plotProfiles(self):
         if veusz is None:
