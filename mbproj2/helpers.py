@@ -48,7 +48,7 @@ def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
 
     ne_beta_cmpt = cmpt.CmptBeta('ne', annuli)
     T_cmpt = cmpt.CmptFlat(
-        'T', annuli, defval=T_keV, minval=0.01, maxval=50.)
+        'T', annuli, defval=T_keV, minval=0.1, maxval=50.)
     Z_cmpt = cmpt.CmptFlat(
         'Z', annuli, defval=Z_solar, minval=-2., maxval=1.)
     betamodel = model.ModelNullPot(
@@ -74,12 +74,12 @@ def initialNeCmptBinnedFromBeta(
         annuli, data, NH_1022pcm2, Z_solar, T_keV)
 
     # then switch to a binned profile
-    ne_binned_cmpt = cmpt.CmptBinned(
+    ne_binned_cmpt = cmpt.CmptBinnedJumpPrior(
         'ne', annuli, log=True, defval=-2, minval=-6., maxval=1.)
     binnedmodel = model.ModelNullPot(
         annuli, ne_binned_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
     binnedpars = binnedmodel.defPars()
-    binnedpars['Z'].fixed = True
+    binnedpars['Z'].frozen = True
     binnedpars['T'].val = betapars['T'].val
 
     # copy in beta profile
@@ -183,7 +183,7 @@ def initialNeCmptInterpolMoveRadFromBeta(
 
     # setup parameters
     movingpars = movingmodel.defPars()
-    movingpars['Z'].fixed = True
+    movingpars['Z'].frozen = True
     movingpars['T'].val = betapars['T'].val
     # calculate densities at bins
     nepars = N.interp(rlog, rlogannuli, betane)

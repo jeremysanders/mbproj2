@@ -93,14 +93,15 @@ class Fit:
                 par.val = par.minval
         return penalty
 
-    def getLikelihood(self, vals):
-        """Get likelihood for paramters given.  Parameters are trimmed to
+    def getLikelihood(self, vals=None):
+        """Get likelihood for parameters given.  Parameters are trimmed to
         their allowed range, applying a penalty
 
         Also include are the priors from the various components
         """
 
-        self.updateThawed(vals)
+        if vals is not None:
+            self.updateThawed(vals)
         penalty = self.penaltyTrimBounds()
         profs = self.calcProfiles()
         like = self.profLikelihood(profs) - penalty*100

@@ -28,7 +28,8 @@ def makePSFImage(psf_edges, psf_val, pix_size):
         psfimg[pix] = v
     return psfimg
 
-def linearComputePSFMatrix(psf_edges, psf_val, annuli, psfoversample=4, annoversample=16):
+def linearComputePSFMatrix(
+    psf_edges, psf_val, annuli, psfoversample=4, annoversample=16):
     """A PSF matrix calculation which doesn't require convolution.
 
     Idea is to slide PSF radially along an axis and compute the
@@ -42,15 +43,20 @@ def linearComputePSFMatrix(psf_edges, psf_val, annuli, psfoversample=4, annovers
     """
 
     print('Computing PSF matrix')
-    annuli_edges = annuli.edges_arcmin
-    annuli_edges_sqd = annuli_edges**2
+
+    # turn psf into a symmetric image (method assumes this)
     pix_size = N.diff(psf_edges).min() / psfoversample
     psfimg = makePSFImage(psf_edges, psf_val, pix_size)
     psfimg *= 1/psfimg.sum()
 
+    annuli_edges = annuli.edges_arcmin
+    annuli_edges_sqd = annuli_edges**2
+
     # coordinates of pixels
-    psfy = N.fromfunction(lambda y,x: pix_size*(y-psfimg.shape[0]//2), psfimg.shape)
-    psfx = N.fromfunction(lambda y,x: pix_size*(x-psfimg.shape[1]//2), psfimg.shape)
+    psfy = N.fromfunction(
+        lambda y,x: pix_size*(y-psfimg.shape[0]//2), psfimg.shape)
+    psfx = N.fromfunction(
+        lambda y,x: pix_size*(x-psfimg.shape[1]//2), psfimg.shape)
 
     # extract non-zero regions, as we only care about the distribution
     nonzero = psfimg != 0
@@ -73,10 +79,11 @@ def linearComputePSFMatrix(psf_edges, psf_val, annuli, psfoversample=4, annovers
         for subrad, subscale in izip(subrads, subscales):
             psfrad_sqd = (psfx_f+subrad)**2 + psfy_f_sqd
 
-            hist, edges = N.histogram(psfrad_sqd, bins=annuli_edges_sqd, weights=psfimg_f)
-            matout[i, :] += hist*subscale
+            hist, edges = N.histogram(
+                psfrad_sqd, bins=annuli_edges_sqd, weights=psfimg_f)
+            matout[:, i] += hist*subscale
 
-    return N.transpose(matout)
+    return matout
 
 def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
     """Slow form of PSF matrix calculation using image convolution.
@@ -114,10 +121,45 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
         conv *= (1./conv.sum())
 
         hist, edges = N.histogram(radii, bins=annuli_edges, weights=conv)
-        matout[i, :] = hist
+        matout[:, i] = hist
     print('Done')
 
-    return N.transpose(matout)
+    return matout
+
+def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
+    """Compute a convolution PSF matrix using the image given."""
+
+    edges = annuli.edges_arcmin
+
+    imgsize = 2*(int(edges[-1]/pixsize_arcmin)+1+max(psfimg.shape)//2) + 1
+
+    radii = N.fromfunction(
+        lambda y,x: N.sqrt(
+            (x-imgsize//2)**2+(y-imgsize//2)**2)*pixsize_arcmin,
+        (imgsize, imgsize))
+
+    psfimgnorm = psfimg * (1./psfimg.sum())
+
+    # output response matrix
+    matout = N.zeros( (len(edges)-1, len(edges)-1) )
+
+    for i, (e1, e2) in enumerate(izip(edges[:-1], edges[1:])):
+        print(' shell', i)
+
+        annimg = ((radii >= e1) & (radii < e2)).astype(N.float)
+        annimg *= 1./annimg.sum()
+
+        conv = scipy.signal.fftconvolve(annimg, psfimgnorm, mode='same')
+        # attempt at noise removal
+        conv[conv < 2*abs(conv.min())] = 0
+
+        #fitsgz.writeImageSimple(conv, 'conv_%i.fits' % i)
+ 
+        hist, edges = N.histogram(radii, bins=edges, weights=conv)
+        matout[:, i] = hist
+    print('Done')
+
+    return matout
 
 def cachedPSFMatrix(psf_edge, psf_val, annuli):
     """Return PSF matrix, getting cached version if possible."""
@@ -136,4 +178,4 @@ def cachedPSFMatrix(psf_edge, psf_val, annuli):
                 psf = linearComputePSFMatrix(psf_edge, psf_val, annuli)
                 cache[key] = psf
             m = N.array(cache[key])
-    return scipy.sparse.csr_matrix(m)
+    return m

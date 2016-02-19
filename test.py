@@ -3,9 +3,6 @@ from __future__ import division, print_function
 import sys
 import os
 import numpy as N
-import scipy.optimize
-import emcee
-import h5py
 
 import mbproj2 as mb
 

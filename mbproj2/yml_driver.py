@@ -213,7 +213,16 @@ class YMLDriver:
         for name, par in self.pars.iteritems():
             if name[:3] == 'ne_':
                 par.frozen = False
+
         thefit.refreshThawed()
+        self.model.ne_cmpt.priorjump = 2.0
+        thefit.doFitting()
+
+        # constraining ne
+        print("Opening ne constraints")
+        self.model.ne_cmpt.priorjump = 4.0
+        thefit.doFitting()
+        self.model.ne_cmpt.priorjump = 10.0
         thefit.doFitting()
 
         y = self.ypars['mcmc']
@@ -249,7 +258,7 @@ def ymlCmdLineParse():
     parser.add_argument(
         'conf', help='Input configuration file')
     parser.add_argument(
-        'mode', help='Run mode', choices=['run', 'medians'])
+        'mode', help='Run mode', choices=['run', 'medians', 'run+medians'])
     parser.add_argument(
         '--medthin', default=10, type=int,
         help='Thin value when using medians (after original thin)')
@@ -275,9 +284,9 @@ def ymlCmdLineParse():
         os.chdir(args.working_dir)
 
     yml = YMLDriver(args.conf, threads=args.override_threads)
-    if args.mode == 'run':
+    if args.mode == 'run' or args.mode == 'run+medians':
         yml.run()
-    elif args.mode == 'medians':
+    if args.mode == 'medians' or args.mode == 'run+medians':
         yml.medians(
             mode=args.medfiletype, thin=args.medthin,
             burn=args.medburn, confint=args.medconf)
