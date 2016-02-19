@@ -127,7 +127,7 @@ class CmptBinnedJumpPrior(CmptBinned):
             elif abs(lastp/p-1) > self.priorjump:
                 priorval -= abs(lastp/p-1)/self.priorjump
             lastp = p
-        return 10*priorval
+        return 100*priorval
 
 class CmptInterpolMoveRad(Cmpt):
     """A profile with control points, using interpolation to find the
