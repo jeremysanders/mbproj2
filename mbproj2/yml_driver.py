@@ -195,6 +195,16 @@ class YMLDriver:
         self.data = constructData(self.ypars, self.annuli)
         self.model, self.pars = constructModel(self.ypars, self.annuli)
 
+        # optional background normalisation scaling
+        if 'backscale' in self.ypars['model']['params']:
+            bs = self.ypars['model']['params']['backscale']
+            val = bs['val']
+            rng = bs.get('range', 0.)
+            backfrozen = True if rng==0. else bs.get('fixed', False)
+
+            self.pars['backscale'] = fit.Param(
+                val, minval=val-rng, maxval=val+rng, frozen=backfrozen)
+
     def run(self):
         """Run, producing chain."""
         helpers.estimateDensityProfile(self.model, self.data, self.pars)
@@ -205,6 +215,12 @@ class YMLDriver:
         for name, par in self.pars.iteritems():
             if name[:3] == 'ne_':
                 par.frozen = True
+
+        # freeze background scaling (if used)
+        if 'backscale' in self.pars:
+            backfrozen = self.pars['backscale'].frozen
+            self.pars['backscale'].frozen = True
+
         thefit.refreshThawed()
         thefit.doFitting()
 
@@ -225,6 +241,14 @@ class YMLDriver:
         self.model.ne_cmpt.priorjump = 10.0
         thefit.doFitting()
 
+        # thaw background (if set)
+        if 'backscale' in self.pars and not backfrozen:
+            print('Thawing background scaling')
+            self.pars['backscale'].frozen = False
+            thefit.refreshThawed()
+            thefit.doFitting()
+
+        # do burn in
         y = self.ypars['mcmc']
         m = mcmc.MCMC(thefit, walkers=y['walkers'], processes=self.threads)
         m.burnIn(y['burn'])
@@ -256,7 +280,7 @@ def ymlCmdLineParse():
         description='MCMC multiband projection analysis (mbproj2)',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'conf', help='Input configuration file')
+        'conf', help='Input yml configuration file')
     parser.add_argument(
         'mode', help='Run mode', choices=['run', 'medians', 'run+medians'])
     parser.add_argument(

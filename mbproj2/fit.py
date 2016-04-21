@@ -33,6 +33,15 @@ class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
 
     def __init__(self, pars, model, data):
+        """
+        pars: dict of name->Param objects
+        model: Model object
+        data: Data object
+
+        The parmaeters are for the model, but can include a parameter
+        called backscale, which controls the scaling of the background
+        """
+
         self.pars = pars
         self.model = model
         self.data = data
@@ -51,11 +60,18 @@ class Fit:
 
         ne_prof, T_prof, Z_prof = self.model.computeProfs(self.pars)
 
+        # optional background scaling parameter
+        if 'backscale' in self.pars:
+            backscale = self.pars['backscale'].val
+        else:
+            backscale = 1.
+
         profs = []
         for band in self.data.bands:
             modprof = band.calcProjProfile(
                 self.data.annuli, ne_prof, T_prof, Z_prof,
-                self.model.NH_1022pcm2)
+                self.model.NH_1022pcm2,
+                backscale=backscale)
             profs.append(modprof)
 
         return profs

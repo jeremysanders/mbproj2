@@ -94,7 +94,7 @@ class Band:
 
         self.psfmatrix = psfmatrix
 
-    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2):
+    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
         """Predict profile given cluster profiles."""
 
         rates = annuli.ctrate.getCountRate(
@@ -108,7 +108,7 @@ class Band:
 
         projrates *= self.areascales
 
-        projrates += self.backrates * (annuli.geomarea_arcmin2*self.areascales)
+        projrates += self.backrates * backscale * annuli.geomarea_arcmin2 * self.areascales
         projrates *= self.exposures
 
         return projrates
