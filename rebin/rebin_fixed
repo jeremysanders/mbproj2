@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+# implement a fixed binning scheme
+
+from __future__ import print_function, division
+import sys
+import numpy as N
+
+def fixbinning(infile, factor, outfile):
+    """Rebin input file using fixed binning factor."""
+
+    indat = N.loadtxt(infile)
+
+    edgesin = N.concatenate((
+            indat[:,0]-indat[:,1],
+            [indat[-1,0]+indat[-1,1]]))
+
+    totcts = [0.]
+    totarea = [0.]
+    totexposurects = [0.]
+    totexposure = [0.]
+
+    out = []
+    def adddata():
+        """Add current total values to output."""
+        if totcts[0] > 0:
+            avexp = totexposurects[0] / totcts[0]
+        else:
+            avexp = totexposure[0] / ct
+
+        row = [
+                totcts[0], totarea[0], avexp,
+                totcts[0]/totarea[0]/avexp
+        ]
+        out.append(row)
+        totcts[0] = totarea[0] = totexposurects[0] = totexposure[0] = 0.
+
+
+    ct = 0
+    for i in xrange(len(indat)):
+        totcts[0] += indat[i,2]
+        totarea[0] += indat[i,3]
+        totexposurects[0] += indat[i,2]*indat[i,4]
+        totexposure[0] += indat[i,4]
+
+        ct += 1
+        if ct == factor:
+            adddata()
+            ct = 0
+
+    if ct > 0:
+        adddata()
+
+    out = N.array(out)
+    binedges = edgesin[::factor]
+
+    if len(binedges) <= len(out):
+        binedges = N.concatenate((binedges, [edgesin[-1]]))
+
+    centres = 0.5*(binedges[1:]+binedges[:-1])
+    widths = 0.5*(binedges[1:]-binedges[:-1])
+
+    out = N.column_stack( (centres, widths, out) )
+
+    with open(outfile, 'w') as f:
+        f.write('# Rebinned from %s by factor %i\n' % (infile, factor))
+        f.write('# rcentre(amin) rhalfwidth(amin) counts area(amin2) exposure sb\n')
+        N.savetxt(f, out, fmt='%e')
+
+if __name__ == '__main__':
+    fixbinning(sys.argv[1], int(sys.argv[2]), sys.argv[3])
