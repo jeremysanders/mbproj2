@@ -19,6 +19,7 @@ import fit
 import helpers
 import phys
 import mcmc
+from utils import uprint
 
 def readProfile(arg):
     """Read a particular column from a file, ignoring blank lines."""
@@ -211,7 +212,7 @@ class YMLDriver:
         thefit = fit.Fit(self.pars, self.model, self.data)
 
         # first fit, freezing density
-        print("Fitting with frozen densities")
+        uprint("Fitting with frozen densities")
         for name, par in self.pars.iteritems():
             if name[:3] == 'ne_':
                 par.frozen = True
@@ -225,7 +226,7 @@ class YMLDriver:
         thefit.doFitting()
 
         # then thaw again
-        print("Thawing densities")
+        uprint("Thawing densities")
         for name, par in self.pars.iteritems():
             if name[:3] == 'ne_':
                 par.frozen = False
@@ -235,7 +236,7 @@ class YMLDriver:
         thefit.doFitting()
 
         # constraining ne
-        print("Opening ne constraints")
+        uprint("Opening ne constraints")
         self.model.ne_cmpt.priorjump = 4.0
         thefit.doFitting()
         self.model.ne_cmpt.priorjump = 10.0
@@ -243,7 +244,7 @@ class YMLDriver:
 
         # thaw background (if set)
         if 'backscale' in self.pars and not backfrozen:
-            print('Thawing background scaling')
+            uprint('Thawing background scaling')
             self.pars['backscale'].frozen = False
             thefit.refreshThawed()
             thefit.doFitting()

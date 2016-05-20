@@ -4,9 +4,15 @@ import numpy as N
 from scipy.special import gammaln
 
 from itertools import izip
+import sys
 import os
 import time
 import uuid
+
+def uprint(*args, **argsv):
+    """Unbuffered print."""
+    print(*args, **argsv)
+    sys.stdout.flush()
 
 def projectionVolume(R1, R2, y1, y2):
     """Return the projected volume of a shell of radius R1->R2 onto an

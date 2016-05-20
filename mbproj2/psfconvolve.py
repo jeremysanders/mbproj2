@@ -13,6 +13,7 @@ import hashlib
 from itertools import izip
 
 import utils
+from utils import uprint
 
 def makePSFImage(psf_edges, psf_val, pix_size):
     """Compute an image of the PSF using the angular scale."""
@@ -42,7 +43,7 @@ def linearComputePSFMatrix(
     over
     """
 
-    print('Computing PSF matrix')
+    uprint('Computing PSF matrix')
 
     # turn psf into a symmetric image (method assumes this)
     pix_size = N.diff(psf_edges).min() / psfoversample
@@ -68,7 +69,7 @@ def linearComputePSFMatrix(
     matout = N.zeros( (len(annuli_edges)-1, len(annuli_edges)-1) )
 
     for i, (e1, e2) in enumerate(izip(annuli_edges[:-1], annuli_edges[1:])):
-        print(' shell', i)
+        uprint(' shell', i)
 
         # split up shell and compute average midpoint radius
         subedges = N.linspace(e1, e2, annoversample)
@@ -91,7 +92,7 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
     Creates an image and does a convolution.
     """
 
-    print('Computing PSF matrix')
+    uprint('Computing PSF matrix')
     annuli_edges = annuli.edges_arcmin
     small_delta_psf = N.diff(psf_edges).min()
     small_delta_annuli = N.diff(annuli_edges).min()
@@ -104,7 +105,7 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
     matout = N.zeros( (len(annuli_edges)-1, len(annuli_edges)-1) )
 
     for i, (e1, e2) in enumerate(izip(annuli_edges[:-1], annuli_edges[1:])):
-        print(' shell', i)
+        uprint(' shell', i)
         # make an image of shell and convolve with psf
         imgsize = int(N.ceil((e2+psf_edges[-1])/pix_size))*2+1
 
@@ -122,7 +123,7 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
 
         hist, edges = N.histogram(radii, bins=annuli_edges, weights=conv)
         matout[:, i] = hist
-    print('Done')
+    uprint('Done')
 
     return matout
 
@@ -144,7 +145,7 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
     matout = N.zeros( (len(edges)-1, len(edges)-1) )
 
     for i, (e1, e2) in enumerate(izip(edges[:-1], edges[1:])):
-        print(' shell', i)
+        uprint(' shell', i)
 
         annimg = ((radii >= e1) & (radii < e2)).astype(N.float)
         annimg *= 1./annimg.sum()
@@ -157,7 +158,7 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
  
         hist, edges = N.histogram(radii, bins=edges, weights=conv)
         matout[:, i] = hist
-    print('Done')
+    uprint('Done')
 
     return matout
 

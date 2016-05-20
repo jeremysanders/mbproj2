@@ -5,6 +5,7 @@ import cmpt
 import model
 import fit
 import utils
+from utils import uprint
 from physconstants import kpc_cm
 
 def estimateDensityProfile(inmodel, data, modelpars):
@@ -14,7 +15,7 @@ def estimateDensityProfile(inmodel, data, modelpars):
     metallicity and does not use hydrostatic equilibrium.
     """
 
-    print('Estimating densities')
+    uprint('Estimating densities')
 
     annuli = inmodel.annuli
     # temporary model with flat temperature and metallicity (fixed)
@@ -38,7 +39,7 @@ def estimateDensityProfile(inmodel, data, modelpars):
             modelpars[par] = temppars[par]
             txt.append('%4.1f' % temppars[par].val)
 
-    print('Done estimating densities:', ' '.join(txt))
+    uprint('Done estimating densities:', ' '.join(txt))
 
 def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
     """Fit beta density model with isothermal cluster.
@@ -60,7 +61,7 @@ def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
     betafit = fit.Fit(betapars, betamodel, data)
     betafit.doFitting(silent=silent)
     like = betafit.doFitting(silent=silent)
-    print(' Log likelihood (beta): %.1f' % like)
+    uprint(' Log likelihood (beta): %.1f' % like)
 
     return ne_beta_cmpt, T_cmpt, Z_cmpt, betapars
 
@@ -68,7 +69,7 @@ def initialNeCmptBinnedFromBeta(
     annuli, data, NH_1022pcm2=0.01, Z_solar=0.3, T_keV=3.):
     """Return ne component and initial parameters."""
 
-    print('Estimating densities using beta model')
+    uprint('Estimating densities using beta model')
 
     ne_beta_cmpt, T_cmpt, Z_cmpt, betapars = fitBeta(
         annuli, data, NH_1022pcm2, Z_solar, T_keV)
@@ -90,9 +91,9 @@ def initialNeCmptBinnedFromBeta(
     binnedfit = fit.Fit(binnedpars, binnedmodel, data)
     binnedfit.doFitting(silent=True)
     like = binnedfit.doFitting(silent=True)
-    print(' Log likelihood (full): %.1f' % like)
+    uprint(' Log likelihood (full): %.1f' % like)
 
-    print('Estimated profile:', N.log10(ne_binned_cmpt.computeProf(binnedpars)))
+    uprint('Estimated profile:', N.log10(ne_binned_cmpt.computeProf(binnedpars)))
 
     outpars = {par: val for par, val in binnedpars.iteritems()
                if par[:3] == 'ne_'}
@@ -100,7 +101,7 @@ def initialNeCmptBinnedFromBeta(
 
 def autoRadialBins(annuli, data, minsn, minbins=2, maxbins=100):
     """Take radial count profiles and choose bins using number of
-    counts."""
+    projected counts."""
 
     ninbins = len(annuli.massav_cm)
 
@@ -138,8 +139,8 @@ def autoRadialBins(annuli, data, minsn, minbins=2, maxbins=100):
             minsn *= 1.1
         else:
             radii_log_kpc = N.log10(N.array(radii) / kpc_cm)
-            print('Chosen radial interpolation points using S/N %.1f' % minsn)
-            print('Radii:', radii_log_kpc)
+            uprint('Chosen radial interpolation points using S/N %.1f' % minsn)
+            uprint('Radii:', radii_log_kpc)
             return radii_log_kpc
 
 def initialNeCmptInterpolMoveRadFromBeta(
@@ -154,12 +155,12 @@ def initialNeCmptInterpolMoveRadFromBeta(
     mode should be: 'lognbins', 'minsn'
     """
 
-    print('Estimating densities using beta model')
+    uprint('Estimating densities using beta model')
 
     ne_beta_cmpt, T_cmpt, Z_cmpt, betapars = fitBeta(
         annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=silent)
 
-    print('Switching to interpolation model')
+    uprint('Switching to interpolation model')
 
     # create radial bins
     rlogannuli = N.log10(annuli.midpt_cm / kpc_cm)
@@ -197,9 +198,9 @@ def initialNeCmptInterpolMoveRadFromBeta(
     movingfit = fit.Fit(movingpars, movingmodel, data)
     movingfit.doFitting(silent=silent)
     like = movingfit.doFitting(silent=silent)
-    print(' Log likelihood (full): %.1f' % like)
+    uprint(' Log likelihood (full): %.1f' % like)
 
-    print('Estimated profile:', N.log10(ne_moving_cmpt.computeProf(movingpars)))
+    uprint('Estimated profile:', N.log10(ne_moving_cmpt.computeProf(movingpars)))
 
     outpars = {par: val for par, val in movingpars.iteritems()
                if par[:3] == 'ne_'}

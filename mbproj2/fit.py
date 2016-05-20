@@ -6,6 +6,7 @@ import scipy.optimize
 import numpy as N
 
 import utils
+from utils import uprint
 
 try:
     import veusz.embed as veusz
@@ -129,11 +130,11 @@ class Fit:
             self.bestlike = totlike
             #print("Better fit %.1f" % totlike)
             with utils.AtomicWriteFile("fit.dat") as fout:
-                print(
+                uprint(
                     "likelihood = %g + %g = %g" % (like, prior, totlike),
                     file=fout)
                 for p in sorted(self.pars):
-                    print("%s = %s" % (p, self.pars[p]), file=fout)
+                    uprint("%s = %s" % (p, self.pars[p]), file=fout)
 
         return totlike
 
@@ -144,13 +145,13 @@ class Fit:
         """
 
         if not silent:
-            print('Fitting (Iteration 1)')
+            uprint('Fitting (Iteration 1)')
 
         ctr = [0]
         def minfunc(pars):
             like = self.getLikelihood(pars)
             if ctr[0] % 1000 == 0 and not silent:
-                print('%10i %10.1f' % (ctr[0], like))
+                uprint('%10i %10.1f' % (ctr[0], like))
             ctr[0] += 1
             return -like
 
@@ -167,11 +168,11 @@ class Fit:
             if abs(lastlike-like) < 0.1:
                 break
             if not silent:
-                print('Iteration %i' % (i+2))
+                uprint('Iteration %i' % (i+2))
             lastlike = like
 
         if not silent:
-            print('Fit Result:   %.1f' % like)
+            uprint('Fit Result:   %.1f' % like)
         self.updateThawed(fpars)
         return like
 

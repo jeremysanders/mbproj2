@@ -6,6 +6,7 @@ import emcee
 import numpy as N
 
 import utils
+from utils import uprint
 import forkparallel
 
 class MultiProcessPool:
@@ -80,7 +81,7 @@ class MCMC:
                 p0, iterations=length, storechain=False)):
 
             if i % 10 == 0:
-                print(' Burn %i / %i (%.1f%%)' % (
+                uprint(' Burn %i / %i (%.1f%%)' % (
                         i, length, i*100/length))
 
             self.pos0, lnprob, rstate0 = result[:3]
@@ -95,8 +96,8 @@ class MCMC:
             if ( autorefit and i>length*0.2 and
                  bestfit is not None ):
 
-                print('  Restarting burn as new best fit has been found '
-                      ' (%g > %g)' % (bestprob, initprob) )
+                uprint('  Restarting burn as new best fit has been found '
+                       ' (%g > %g)' % (bestprob, initprob) )
                 self.fit.updateThawed(bestfit)
                 self.sampler.reset()
                 return False
@@ -107,23 +108,23 @@ class MCMC:
     def burnIn(self, length, autorefit=True):
         """Burn in, restarting if necessary."""
 
-        print('Burning in')
+        uprint('Burning in')
         while not self.innerburnin(length, autorefit):
-            print('Restarting, as new mininimum found')
+            uprint('Restarting, as new mininimum found')
             self.fit.doFitting()
 
     def run(self, length):
         """Run main chain."""
 
-        print('Sampling')
+        uprint('Sampling')
         self.header['length'] = length
 
         # initial parameters
         if self.pos0 is None:
-            print(' Generating initial parameters')
+            uprint(' Generating initial parameters')
             p0 = self.generateInitPars()
         else:
-            print(' Starting from end of burn-in position')
+            uprint(' Starting from end of burn-in position')
             p0 = self.pos0
 
         # do sampling
@@ -131,16 +132,16 @@ class MCMC:
                 p0, iterations=length)):
 
             if i % 10 == 0:
-                print(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
+                uprint(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
 
-        print('Done')
+        uprint('Done')
 
     def save(self, outfilename, thin=1):
         """Save chain to HDF5 file."""
 
         self.header['thin'] = thin
 
-        print('Saving chain to', outfilename)
+        uprint('Saving chain to', outfilename)
         try:
             os.unlink(outfilename)
         except OSError:
@@ -168,4 +169,4 @@ class MCMC:
             # last position in chain
             f['lastpos'] = self.sampler.chain[:, -1, :].astype(N.float32)
 
-        print('Done')
+        uprint('Done')

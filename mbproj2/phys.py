@@ -9,6 +9,7 @@ import h5py
 from physconstants import (
     kpc_cm, keV_erg, ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, Mpc_cm,
     yr_s, solar_mass_g, G_cgs, P_keV_to_erg)
+from utils import uprint
 import fit
 
 # we want to define the cumulative values half way in the
@@ -123,7 +124,7 @@ def replayChainPhys(chainfilename,
     default)
     """
 
-    print('Computing physical quantities from chain', chainfilename)
+    uprint('Computing physical quantities from chain', chainfilename)
     with h5py.File(chainfilename) as f:
         fakefit = fit.Fit(pars, model, None)
         if fakefit.thawed != list(f['thawed_params']):
@@ -136,7 +137,7 @@ def replayChainPhys(chainfilename,
     length = len(chain)
     for i, parvals in enumerate(chain):
         if i % 1000 == 0:
-            print(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
+            uprint(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
 
         fakefit.updateThawed(parvals)
 
@@ -145,7 +146,7 @@ def replayChainPhys(chainfilename,
             data[name].append(vals)
 
     # compute medians and errors
-    print(' Computing medians')
+    uprint(' Computing medians')
     outprofs = {}
     for name, vals in data.iteritems():
         # compute percentiles
@@ -164,7 +165,7 @@ def replayChainPhys(chainfilename,
     outprofs['r_kpc'] = N.column_stack(
         (annuli.midpt_cm / kpc_cm, 0.5*annuli.widths_cm / kpc_cm))
 
-    print('Done quantity computation')
+    uprint('Done quantity computation')
     return outprofs
 
 def savePhysProfilesHDF5(outfilename, profiles):
@@ -173,8 +174,8 @@ def savePhysProfilesHDF5(outfilename, profiles):
         os.unlink(outfilename)
     except OSError:
         pass
-    print('Writing', outfilename)
-    with h5py.File(outfilename) as f:
+    uprint('Writing', outfilename)
+    with h5py.File(outfilename, 'w') as f:
         for name in profiles:
             f[name] = profiles[name]
             f[name].attrs['vsz_twod_as_oned'] = 1
@@ -185,7 +186,7 @@ def savePhysProfilesText(outfilename, profiles):
         os.unlink(outfilename)
     except OSError:
         pass
-    print('Writing', outfilename)
+    uprint('Writing', outfilename)
     with open(outfilename, 'w') as f:
         for name in sorted(profiles):
             prof = profiles[name]
