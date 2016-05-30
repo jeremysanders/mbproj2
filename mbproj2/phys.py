@@ -112,16 +112,16 @@ def physFromProfs(model, pars):
 
     return v
 
-def replayChainPhys(chainfilename,
-                    model, pars, burn=0, thin=10, confint=68.269):
-    """Replay chain, compute physical quantity profiles.
+def computePhysChains(chainfilename, model, pars, burn=0, thin=10):
+    """Compute set of chains for each physical quantity.
 
-    confint: confidence interval
     burn: skip initial N items in chain
     thin: skip every N iterations in chain
 
-    Returns medians and confidence interval percentiles (1 sigma by
-    default)
+    Returns tuple:
+     dict of name with profiles,
+     radial bins in arcmin, with widths,
+     radial bins in kpc, with widths
     """
 
     uprint('Computing physical quantities from chain', chainfilename)
@@ -133,6 +133,7 @@ def replayChainPhys(chainfilename,
         chain = f['chain'][:, burn::thin, :]
         chain = chain.reshape(-1, chain.shape[2])
 
+    # iterate over input
     data = defaultdict(list)
     length = len(chain)
     for i, parvals in enumerate(chain):
@@ -144,6 +145,55 @@ def replayChainPhys(chainfilename,
         physvals = physFromProfs(model, fakefit.pars)
         for name, vals in physvals.iteritems():
             data[name].append(vals)
+
+    # convert to numpy arrays
+    out = {}
+    for name in list(data.keys()):
+        out[name] = N.array(data[name])
+        del data[name]
+
+    # get radii
+    annuli = model.annuli
+    r_arcmin = 0.5*(annuli.edges_arcmin[1:]+annuli.edges_arcmin[:-1])
+    r_width_arcmin = 0.5*(annuli.edges_arcmin[1:]-annuli.edges_arcmin[:-1])
+
+    r_arcmin = N.column_stack((r_arcmin, r_width_arcmin))
+    r_kpc = N.column_stack(
+        (annuli.midpt_cm / kpc_cm, 0.5*annuli.widths_cm / kpc_cm))
+
+    return out, r_arcmin, r_kpc
+
+def savePhysChain(infilename, outfilename, model, pars, burn=0, thin=10):
+    """Write output physical chain."""
+
+    data, r_arcmin, r_kpc = computePhysChains(
+        infilename, model, pars, burn=burn, thin=thin)
+
+    print('Writing', outfilename)
+    with h5py.File(outfilename, 'w') as f:
+        f['r_arcmin'] = r_arcmin
+        f['r_kpc'] = r_kpc
+
+        for v, d in data.iteritems():
+            if N.all(N.abs(d[N.isfinite(d)]) < 3e38):
+                # shrink values to float32 if possible
+                d = d.astype(N.float32)
+            f.create_dataset(v, data=d, compression=True, shuffle=True)
+
+def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269):
+    """Replay chain, compute physical quantity profiles.
+
+    confint: confidence interval
+    burn: skip initial N items in chain
+    thin: skip every N iterations in chain
+
+    Returns medians and confidence interval percentiles (1 sigma by
+    default)
+    """
+
+    # get values to compute medians from
+    data, r_arcmin, r_kpc = computePhysChains(
+        chainfilename, model, pars, burn=burn, thin=thin)
 
     # compute medians and errors
     uprint(' Computing medians')
@@ -157,15 +207,10 @@ def replayChainPhys(chainfilename,
         prof = N.column_stack((median, posrange-median, negrange-median))
         outprofs[name] = prof
 
-    annuli = model.annuli
-    r_arcmin = 0.5*(annuli.edges_arcmin[1:]+annuli.edges_arcmin[:-1])
-    r_width_arcmin = 0.5*(annuli.edges_arcmin[1:]-annuli.edges_arcmin[:-1])
+    outprofs['r_arcmin'] = r_arcmin
+    outprofs['r_kpc'] = r_kpc
 
-    outprofs['r_arcmin'] = N.column_stack((r_arcmin, r_width_arcmin))
-    outprofs['r_kpc'] = N.column_stack(
-        (annuli.midpt_cm / kpc_cm, 0.5*annuli.widths_cm / kpc_cm))
-
-    uprint('Done quantity computation')
+    uprint('Done median computation')
     return outprofs
 
 def savePhysProfilesHDF5(outfilename, profiles):

@@ -276,6 +276,13 @@ class YMLDriver:
         if mode == 'text' or mode == 'hdf5+text':
             phys.savePhysProfilesText('%s_mbp2_medians.txt' % self.name, profs)
 
+    def physChain(self, thin=10, burn=0):
+        """Write physical quantities as a chain."""
+        outfile = '%s_mbp2_physchain.hdf5' % self.name
+        phys.savePhysChain(
+            self.chainfilename, outfile, self.model, self.pars,
+            thin=thin, burn=burn)
+
 def ymlCmdLineParse():
     parser = argparse.ArgumentParser(
         description='MCMC multiband projection analysis (mbproj2)',
@@ -283,7 +290,8 @@ def ymlCmdLineParse():
     parser.add_argument(
         'conf', help='Input yml configuration file')
     parser.add_argument(
-        'mode', help='Run mode', choices=['run', 'medians', 'run+medians'])
+        'mode', help='Run mode', choices=[
+            'run', 'medians', 'run+medians', 'physchain'])
     parser.add_argument(
         '--medthin', default=10, type=int,
         help='Thin value when using medians (after original thin)')
@@ -315,3 +323,6 @@ def ymlCmdLineParse():
         yml.medians(
             mode=args.medfiletype, thin=args.medthin,
             burn=args.medburn, confint=args.medconf)
+    if args.mode == 'physchain':
+        yml.physChain(
+            thin=args.medthin, burn=args.medburn)
