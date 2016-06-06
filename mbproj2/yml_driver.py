@@ -101,6 +101,9 @@ def constructCmpt(subpars, annuli, name, defpars):
         defpars['beta'].frozen = subpars.get('beta_fixed', False)
         defpars['rc'].val = subpars.get('rc', 50.)
         defpars['rc'].frozen = subpars.get('rc_fixed', False)
+    elif subpars['type'] == 'VikhDensity':
+        m = cmpt.CmptVikhDensity(name, annuli)
+        defpars.update(m.defPars())
     elif subpars['type'] == 'Hydrostatic':
         m = 'hydrostatic'
     else:

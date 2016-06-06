@@ -346,3 +346,43 @@ class CmptDoubleBeta(Cmpt):
             betaprof(
                 self.annuli.rin_cm, self.annuli.rout_cm,
                 10**pars['n0_2'].val, pars['beta_2'].val, pars['rc_2'].val))
+
+class CmptVikhDensity(Cmpt):
+    """Density model from Vikhlinin+06, Eqn 3."""
+
+    def defPars(self):
+        return {
+            'n0_1': Param(-2., minval=-7., maxval=2.),
+            'n0_2': Param(-4., minval=-7., maxval=2.),
+            'beta_1': Param(2/3., minval=0., maxval=4.),
+            'beta_2': Param(0.5, minval=0., maxval=4.),
+            'logrc_1': Param(1.7, minval=0., maxval=3.7),
+            'logrc_2': Param(2.3, minval=0., maxval=3.7),
+            'logr_s': Param(2.7, minval=0, maxval=3.7),
+            'alpha': Param(0., minval=-1, maxval=2.),
+            'epsilon': Param(3., minval=0., maxval=5.),
+            'gamma': Param(3., minval=0., maxval=10, frozen=True),
+            }
+
+    def computeProf(self, pars):
+
+        r = self.annuli.midpt_cm / kpc_cm
+        n0_1 = 10**pars['n0_1'].val
+        n0_2 = 10**pars['n0_2'].val
+        beta_1 = pars['beta_1'].val
+        beta_2 = pars['beta_2'].val
+        rc_1 = 10**pars['logrc_1'].val
+        rc_2 = 10**pars['logrc_2'].val
+        r_s = 10**pars['logr_s'].val
+        alpha = pars['alpha'].val
+        epsilon = pars['epsilon'].val
+        gamma = pars['gamma'].val
+
+        return N.sqrt(
+            n0_1**2 *
+            (r/rc_1)**(-alpha) / (
+                (1+r**2/rc_1**2)**(3*beta_1-0.5*alpha) *
+                (1+(r/r_s)**gamma)**(epsilon/gamma)
+                ) +
+            n0_2**2 / (1 + r**2/rc_2**2)**(3*beta_2)
+            )
