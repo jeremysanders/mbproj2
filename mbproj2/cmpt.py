@@ -356,7 +356,7 @@ class CmptVikhDensity(Cmpt):
             'n0_2': Param(-4., minval=-7., maxval=2.),
             'beta_1': Param(2/3., minval=0., maxval=4.),
             'beta_2': Param(0.5, minval=0., maxval=4.),
-            'logrc_1': Param(1.7, minval=0., maxval=3.7),
+            'logrc_1': Param(1.7, minval=-1., maxval=3.7),
             'logrc_2': Param(2.3, minval=0., maxval=3.7),
             'logr_s': Param(2.7, minval=0, maxval=3.7),
             'alpha': Param(0., minval=-1, maxval=2.),
