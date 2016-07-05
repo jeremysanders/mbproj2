@@ -30,6 +30,11 @@ class Param:
         return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, frozen=%s>' % (
             self.val, self.minval, self.maxval, self.frozen)
 
+    def copy(self):
+        p = Param(self.val, minval=self.minval, maxval=self.maxval, frozen=self.frozen)
+        p.defval = self.defval
+        return p
+
 class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
 
@@ -160,11 +165,12 @@ class Fit:
         fpars = thawedpars
         for i in xrange(maxiter):
             fitpars = scipy.optimize.minimize(
-                minfunc, fpars, method='Powell')
-            fitpars = scipy.optimize.minimize(
-                minfunc, fitpars.x, method='Nelder-Mead')
-            like = -fitpars.fun
+                minfunc, fpars, method='Nelder-Mead')
             fpars = fitpars.x
+            fitpars = scipy.optimize.minimize(
+                minfunc, fpars, method='Powell')
+            fpars = fitpars.x
+            like = -fitpars.fun
             if abs(lastlike-like) < 0.1:
                 break
             if not silent:

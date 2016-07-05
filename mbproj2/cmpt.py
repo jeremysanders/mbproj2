@@ -129,12 +129,8 @@ class CmptBinnedJumpPrior(CmptBinned):
             lastp = p
         return 100*priorval
 
-class CmptInterpolMoveRad(Cmpt):
-    """A profile with control points, using interpolation to find the
-    values in between.
-
-    The radii of the control points are parameters (*_r_999 in log kpc)
-    """
+class CmptMoveRadBase(Cmpt):
+    """Base class for moving bins."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
@@ -173,6 +169,13 @@ class CmptInterpolMoveRad(Cmpt):
         valspars.update(rpars)
         return valspars
 
+class CmptInterpolMoveRad(CmptMoveRadBase):
+    """A profile with control points, using interpolation to find the
+    values in between.
+
+    The radii of the control points are parameters (*_r_999 in log kpc)
+    """
+
     def computeProf(self, pars):
         rvals = N.array([pars[n].val for n in self.radparnames])
         vvals = N.array([pars[n].val for n in self.valparnames])
@@ -186,7 +189,92 @@ class CmptInterpolMoveRad(Cmpt):
         prof = N.interp(self.logannkpc, rvals, vvals)
         if self.log:
             prof = 10**prof
+        return prof
 
+class CmptBinnedMoveRad(CmptMoveRadBase):
+    """Binned data with movable radii."""
+
+    def computeProf(self, pars):
+        rvals = N.array([pars[n].val for n in self.radparnames])
+        vvals = N.array([pars[n].val for n in self.valparnames])
+
+        # radii might be in wrong order
+        sortidxs = N.argsort(rvals)
+        rvals = rvals[sortidxs]
+        vvals = vvals[sortidxs]
+        if self.log:
+            vvals = 10**vvals
+
+        # do binning
+        idxs = N.searchsorted(rvals, self.logannkpc)
+        idxsclip = N.clip(idxs, 0, len(vvals)-1)
+        prof = vvals[idxsclip]
+        return prof
+
+class CmptBinWidthIncr(Cmpt):
+    """Component where bins have increasing widths."""
+
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+        nradbins=5, log=False):
+
+        Cmpt.__init__(self, name, annuli)
+        self.defval = defval
+        self.minval = minval
+        self.maxval = maxval
+        self.log = log
+        self.nradbins = nradbins
+
+        # list of all the parameter names for the annuli
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.radparnames = ['%s_dw_%03i' % (self.name, i) for i in xrange(nradbins)]
+
+        # log annuli (note this breaks if the annuli of the bins were
+        # to change)
+        self.ann_kpc = self.annuli.massav_cm / kpc_cm
+
+    def defPars(self):
+        valspars = {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.valparnames
+            }
+
+        # widths of bins
+        maxrad_kpc = self.ann_kpc[-1]
+        rvals_kpc = (N.linspace(0, N.sqrt(maxrad_kpc), self.nradbins+1))**2
+        logwidths_kpc = rvals_kpc[1:-1] - rvals_kpc[:-2]
+        wdelta = N.log10( N.hstack((logwidths_kpc, logwidths_kpc[1:]-logwidths_kpc[:-1])) )
+
+        rpars = {
+            n: Param(v, minval=-4., maxval=4., frozen=True)
+            for n, v in zip(self.radparnames, wdelta)
+            }
+
+        # combined parameters
+        valspars.update(rpars)
+
+        valspars['%s_r_outer' % self.name] = Param(
+            N.log10(self.annuli.edges_cm[-1] / kpc_cm),
+            minval=-1, maxval=4., frozen=True)
+
+        return valspars
+
+    def computeProf(self, pars):
+        wvals = N.array([pars[n].val for n in self.radparnames])
+        vvals = N.array([pars[n].val for n in self.valparnames])
+        if self.log:
+            vvals = 10**vvals
+        
+        outer_kpc = 10**pars['%s_r_outer' % self.name].val
+
+        bwincr = N.cumsum(10**wvals)
+        rvals = N.cumsum(bwincr)
+        rvals_kpc = rvals * (outer_kpc / rvals[-1])
+        #print(rvals_kpc)
+
+        idxs = N.searchsorted(rvals_kpc, self.ann_kpc)
+        idxsclip = N.clip(idxs, 0, len(vvals)-1)
+        prof = vvals[idxsclip]
         return prof
 
 class CmptIncr(Cmpt):
@@ -368,9 +456,7 @@ class CmptVikhDensity(Cmpt):
             '%s_gamma' % self.name: Param(3., minval=0., maxval=10, frozen=True),
             }
 
-    def computeProf(self, pars):
-
-        r = self.annuli.midpt_cm / kpc_cm
+    def vikhFunction(self, pars, radii_kpc):
         n0_1 = 10**pars['%s_n0_1' % self.name].val
         n0_2 = 10**pars['%s_n0_2' % self.name].val
         beta_1 = pars['%s_beta_1' % self.name].val
@@ -382,6 +468,7 @@ class CmptVikhDensity(Cmpt):
         epsilon = pars['%s_epsilon' % self.name].val
         gamma = pars['%s_gamma' % self.name].val
 
+        r = radii_kpc
         return N.sqrt(
             n0_1**2 *
             (r/rc_1)**(-alpha) / (
@@ -390,3 +477,6 @@ class CmptVikhDensity(Cmpt):
                 ) +
             n0_2**2 / (1 + r**2/rc_2**2)**(3*beta_2)
             )
+
+    def computeProf(self, pars):
+        return self.vikhFunction(pars, self.annuli.midpt_cm / kpc_cm)
