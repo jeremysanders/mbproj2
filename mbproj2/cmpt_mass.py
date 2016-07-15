@@ -97,7 +97,7 @@ class CmptMassGNFW(CmptMass):
         return {
             '%s_logconc' % self.name: Param(2., minval=-2., maxval=2.),
             '%s_r200_logMpc' % self.name: Param(0., minval=-1., maxval=1.),
-            '%s_alpha' % self.name: Param(1., minval=0., maxval=2.),
+            '%s_alpha' % self.name: Param(1., minval=0., maxval=2.5),
             }
 
     def computeProf(self, pars):
@@ -107,6 +107,9 @@ class CmptMassGNFW(CmptMass):
         c = 10**(pars['%s_logconc' % self.name].val)
         r200_Mpc = 10**(pars['%s_r200_logMpc' % self.name].val)
         alpha = pars['%s_alpha' % self.name].val
+
+        # check to make sure funny things don't happen
+        alpha = max(min(alpha, 2.999), 0.)
 
         # overdensity relative to critical density
         phi = c**(3-alpha) / (3-alpha) * scipy.special.hyp2f1(

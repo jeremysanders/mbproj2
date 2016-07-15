@@ -141,7 +141,7 @@ def constructCmptMass(pars, annuli, defpars):
                     0.01, 200., log=True)
             copypar('gnfw_r200_logMpc', potp['r200_Mpc'],
                     0.01, 10., log=True)
-            copypar('gnfw_alpha', potp['alpha'], 0.2, 2.0, log=False)
+            copypar('gnfw_alpha', potp['alpha'], 0., 2.5, log=False)
         elif pot['type'] == 'King':
             m = cmpt_mass.CmptMassKing(annuli)
             defpars.update(m.defPars())
