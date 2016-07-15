@@ -81,10 +81,13 @@ class CmptMassGNFW(CmptMass):
 
     rho(r) = rho0 / ( (r/rs)**alpha * (1+r/rs)**(3-alpha) )
 
+    For details see Schmidt & Allen (2007)
+    http://adsabs.harvard.edu/doi/10.1111/j.1365-2966.2007.11928.x
+
     Parameters:
     gnfw_logconc: log10 concentration
     gnfw_r200_logMpc: log10 r200 in Mpc
-    gnfw_alpha: alpha parameter
+    gnfw_alpha: alpha parameter (1 is standard NFW)
     """
 
     def __init__(self, annuli, suffix=None):
@@ -100,13 +103,12 @@ class CmptMassGNFW(CmptMass):
     def computeProf(self, pars):
         """Compute g_cmps2 and potential_ergpg profiles."""
 
+        # get parameter values
         c = 10**(pars['%s_logconc' % self.name].val)
-        r200 = 10**(pars['%s_r200_logMpc' % self.name].val)
+        r200_Mpc = 10**(pars['%s_r200_logMpc' % self.name].val)
         alpha = pars['%s_alpha' % self.name].val
-        radius_cm = self.annuli.massav_cm
 
-        rs_Mpc = r200 / c
-
+        # overdensity relative to critical density
         phi = c**(3-alpha) / (3-alpha) * scipy.special.hyp2f1(
             3-alpha, 3-alpha, 4-alpha, -c)
         delta_c = (200/3) * c**3 / phi
@@ -117,28 +119,26 @@ class CmptMassGNFW(CmptMass):
             cosmo.WM*(1.+cosmo.z)**3 + cosmo.WV )
  
         # critical density at redshift of halo
-        rho_c = 3. * ( Hz_km_s_Mpc / Mpc_km )**2 / (8 * math.pi * G_cgs)
+        rho_c = 3 * ( Hz_km_s_Mpc / Mpc_km )**2 / (8 * math.pi * G_cgs)
         rho_0 = delta_c * rho_c
 
-        # radius relative to scale radius
-        rs_cm = rs_Mpc * Mpc_cm
-        x = radius_cm * (1/rs_cm)
+        # scale radius
+        rs_cm = r200_Mpc * Mpc_cm / c
 
-        # Mass within x
-        mass = (
-            4 * math.pi * rho_0 * x**(3-alpha) / (3-alpha) * rs_cm**3 *
+        # radius of shells relative to scale radius
+        x = self.annuli.massav_cm * (1/rs_cm)
+
+        # gravitational acceleration
+        g = (
+            4 * math.pi * rho_0 * G_cgs / (3-alpha) * rs_cm * x**(1-alpha) *
             scipy.special.hyp2f1(3-alpha, 3-alpha, 4-alpha, -x)
             )
 
-        # gravitational acceleration
-        g = G_cgs * mass / radius_cm**2
-
         # potential
         Phi = (
-            4 * math.pi * rho_0 * G_cgs * rs_cm**2 * (
+            4 * math.pi * rho_0 * G_cgs / (alpha-2) * rs_cm**2 * (
                 1 + -x**(2-alpha) / (3-alpha) *
                 scipy.special.hyp2f1(3-alpha, 2-alpha, 4-alpha, -x) )
-            / (alpha-2)
             )
 
         return g, Phi
