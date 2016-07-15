@@ -134,7 +134,7 @@ def constructCmptMass(pars, annuli, defpars):
                     0.01, 200., log=True)
             copypar('nfw_r200_logMpc', potp['r200_Mpc'],
                     0.01, 10., log=True)
-        if pot['type'] == 'GNFW':
+        elif pot['type'] == 'GNFW':
             m = cmpt_mass.CmptMassGNFW(annuli)
             defpars.update(m.defPars())
             copypar('gnfw_logconc', potp['concentration'],
