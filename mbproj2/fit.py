@@ -227,3 +227,100 @@ class Fit:
 
         if embed is not None:
             self.veuszembed = embed
+
+def genericPopulationMinimizer(
+    function, gennewparams, popnum=1000, keepfrac=0.8, maxiter=1000, sigmabreak=1e-3):
+    """Minimize using a set of populations."""
+
+    # generate initial list of function values and parameters
+    uprint('Populating 0th generation')
+    popfun = []
+    poppar = []
+    while len(poppar) < popnum:
+        par = gennewparams()
+        fun = function(par)
+        if N.isfinite(fun):
+            popfun.append(fun)
+            poppar.append(par)
+
+    popfun = N.array(popfun)
+    poppar = N.array(poppar)
+
+    # number of items to keep in each iteration
+    keepnum = int(popnum*keepfrac)
+    # number of new parameters to create
+    newnum = popnum-keepnum
+
+    # temporary locations for new function values and new parameters
+    newfun = N.zeros(newnum)
+    newpar = N.zeros((newnum, poppar.shape[1]))
+
+    for gen in xrange(maxiter):
+
+        # Sort into function order, keeping fraction. This could be a
+        # partition, but this let's us keep track of what the best
+        # item is.
+        sortidxs = N.argsort(popfun)[:keepnum]
+        popfun = popfun[sortidxs]
+        poppar = poppar[sortidxs]
+
+        bestpars = ' '.join(['%6.3f' % p for p in poppar[0]])
+        bestfun = popfun[0]
+        rmsfun = N.sqrt(N.mean(popfun**2))
+        uprint('Gen %3i, best %7.4f, rms %7.4f, pars=%s' % (
+            gen, bestfun, rmsfun, bestpars))
+
+        if abs(bestfun-rmsfun) < sigmabreak:
+            break
+
+        # create new set of parameters
+        i = 0
+        while i < newnum:
+            # choose random best parameter
+            par1 = poppar[N.random.randint(keepnum)]
+            par2 = poppar[N.random.randint(keepnum)]
+            # adjust by standard deviations
+            movpar = N.random.normal()*(par2-par1) + par1
+
+            # if it is valid, keep
+            fun = function(movpar)
+            if N.isfinite(fun):
+                newfun[i] = fun
+                newpar[i, :] = movpar
+                i += 1
+
+        # merge list
+        popfun = N.concatenate( (popfun, newfun) )
+        poppar = N.vstack( (poppar, newpar) )
+
+    # find lowest value and return value and parameters
+    bestidx = N.argmin(popfun)
+    return popfun[bestidx], poppar[bestidx]
+
+def populationMinimiser(fit, popnum=1000, keepfrac=0.8, maxiter=1000, sigmabreak=1e-3):
+
+    # get list of parameters min and max values
+    minvals = []
+    maxvals = []
+    for name, par in sorted(fit.pars.items()):
+        if not par.frozen:
+            minvals.append(par.minval)
+            maxvals.append(par.maxval)
+    minvals = N.array(minvals)
+    maxvals = N.array(maxvals)
+
+    def gennewparams():
+        r = N.random.rand(len(minvals))
+        pars = minvals + r*(maxvals-minvals)
+        return pars
+
+    def minfunc(pars):
+        like = fit.getLikelihood(pars)
+        return -like
+
+    bestfun, bestpar = genericPopulationMinimizer(
+        minfunc, gennewparams, popnum=popnum, keepfrac=keepfrac,
+        maxiter=maxiter, sigmabreak=sigmabreak)
+
+    uprint('Best likelihood after minimization:', -bestfun)
+    fit.updateThawed(bestpar)

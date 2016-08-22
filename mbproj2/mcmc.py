@@ -31,6 +31,8 @@ class MCMC:
         self.fit = fit
         self.walkers = walkers
         self.numpars = len(fit.thawed)
+        self.initspread = 0.01
+        self.burninrestartfrac = 0.2
 
         # function for getting likelihood
         likefunc = lambda pars: fit.getLikelihood(pars)
@@ -58,7 +60,7 @@ class MCMC:
 
         p0 = []
         while len(p0) < self.walkers:
-            p = N.random.normal(1, 0.01, size=self.numpars)*thawedpars
+            p = N.random.normal(1, self.initspread, size=self.numpars)*thawedpars
             if N.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
         return p0
@@ -93,7 +95,7 @@ class MCMC:
                 bestfit = self.pos0[maxidx]
 
             # abort if new minimum found
-            if ( autorefit and i>length*0.2 and
+            if ( autorefit and i>length*self.burninrestartfrac and
                  bestfit is not None ):
 
                 uprint('  Restarting burn as new best fit has been found '
