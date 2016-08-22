@@ -6,7 +6,7 @@ import scipy.special
 
 from fit import Param
 from cmpt import Cmpt
-from physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm
+from physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm, solar_mass_g
 
 class CmptMass(Cmpt):
     def __init__(self, name, annuli, suffix=''):
@@ -194,6 +194,25 @@ class CmptMassKing(CmptMass):
 
         return g, phi
 
+class CmptMassPoint(CmptMass):
+    """Point mass."""
+
+    def __init__(self, annuli, suffix=None):
+        CmptMass.__init__(self, 'pt', annuli, suffix=suffix)
+
+    def defPars(self):
+        return {
+            '%s_M_logMsun' % self.name: Param(12., minval=10., maxval=14.),
+            }
+
+    def computeProf(self, pars):
+        mass_g = 10**(pars['%s_M_logMsun' % self.name].val) * solar_mass_g
+
+        r = self.annuli.massav_cm
+        g = G_cgs * mass_g / r**2
+        phi = -G_cgs * mass_g / r
+        return g, phi
+
 class CmptMassMulti(CmptMass):
     """Multi-component mass profile."""
 
@@ -207,10 +226,10 @@ class CmptMassMulti(CmptMass):
             retn.update(cmpt.defPars())
         return retn
 
-    def computeProfs(self, pars):
+    def computeProf(self, pars):
         tot_g, tot_pot = 0, 0
         for cmpt in self.cmpts:
-            g, pot = cmpt.computeProfs(pars)
+            g, pot = cmpt.computeProf(pars)
             tot_g += g
             tot_pot += pot
         return tot_g, tot_pot

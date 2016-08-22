@@ -151,6 +151,12 @@ def constructCmptMass(pars, annuli, defpars):
             copypar(
                 'king_rcore_logkpc', potp['rcore_kpc'],
                 0.1, 2500., log=True)
+        elif pot['type'] == 'Point':
+            m = cmpt_mass.CmptMassPoint(annuli)
+            defpars.update(m.defPars())
+            copypar(
+                'pt_M_logMsun', potp['M_logMsun'],
+                10., 14.)
 
         else:
             raise RuntimeError('Unsupported mass component')
