@@ -176,6 +176,14 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
     The radii of the control points are parameters (*_r_999 in log kpc)
     """
 
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+            nradbins=5, log=False, intbeyond=False):
+        CmptMoveRadBase.__init__(
+            self, name, annuli, defval=defval, minval=minval, maxval=maxval,
+            nradbins=nradbins, log=log)
+        self.intbeyond = intbeyond
+
     def computeProf(self, pars):
         rvals = N.array([pars[n].val for n in self.radparnames])
         vvals = N.array([pars[n].val for n in self.valparnames])
@@ -185,8 +193,20 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
         rvals = rvals[sortidxs]
         vvals = vvals[sortidxs]
 
-        # do interpolation
-        prof = N.interp(self.logannkpc, rvals, vvals)
+        if not self.intbeyond:
+            # do interpolation, truncating at bounds
+            prof = N.interp(self.logannkpc, rvals, vvals)
+        else:
+            # do interpolating, extending beyond
+            # this is the gradient between each points
+            grads = (vvals[1:]-vvals[:-1]) / (rvals[1:]-rvals[:-1])
+            # index to point below this one (truncating if necessary)
+            idx = N.searchsorted(rvals, self.logannkpc)-1
+            idx = N.clip(idx, 0, len(grads)-1)
+            # calculate line from point using gradient to next point
+            dr = self.logannkpc - rvals[idx]
+            prof = vvals[idx] + dr*grads[idx]
+
         if self.log:
             prof = 10**prof
         return prof
@@ -444,12 +464,12 @@ class CmptVikhDensity(Cmpt):
 
     def defPars(self):
         return {
-            '%s_n0_1' % self.name: Param(-2., minval=-7., maxval=2.),
-            '%s_n0_2' % self.name: Param(-4., minval=-7., maxval=2.),
+            '%s_n0_1' % self.name: Param(-3., minval=-7., maxval=2.),
+            '%s_n0_2' % self.name: Param(-1., minval=-7., maxval=2.),
             '%s_beta_1' % self.name: Param(2/3., minval=0., maxval=4.),
             '%s_beta_2' % self.name: Param(0.5, minval=0., maxval=4.),
-            '%s_logrc_1' % self.name: Param(1.7, minval=-1., maxval=3.7),
-            '%s_logrc_2' % self.name: Param(2.3, minval=0., maxval=3.7),
+            '%s_logrc_2' % self.name: Param(1.7, minval=-1., maxval=3.7),
+            '%s_logrc_1' % self.name: Param(2.3, minval=-1., maxval=3.7),
             '%s_logr_s' % self.name: Param(2.7, minval=0, maxval=3.7),
             '%s_alpha' % self.name: Param(0., minval=-1, maxval=2.),
             '%s_epsilon' % self.name: Param(3., minval=0., maxval=5.),
