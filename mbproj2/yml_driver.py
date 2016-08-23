@@ -156,7 +156,7 @@ def constructCmptMass(pars, annuli, defpars):
             defpars.update(m.defPars())
             copypar(
                 'pt_M_logMsun', potp['M_logMsun'],
-                10., 14.)
+                9., 14.)
 
         else:
             raise RuntimeError('Unsupported mass component')

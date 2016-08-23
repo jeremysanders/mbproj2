@@ -202,7 +202,7 @@ class CmptMassPoint(CmptMass):
 
     def defPars(self):
         return {
-            '%s_M_logMsun' % self.name: Param(12., minval=10., maxval=14.),
+            '%s_M_logMsun' % self.name: Param(12., minval=9., maxval=14.),
             }
 
     def computeProf(self, pars):
