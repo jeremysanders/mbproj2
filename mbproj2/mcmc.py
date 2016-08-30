@@ -60,7 +60,7 @@ class MCMC:
 
         p0 = []
         while len(p0) < self.walkers:
-            p = N.random.normal(1, self.initspread, size=self.numpars)*thawedpars
+            p = N.random.normal(0, self.initspread, size=self.numpars) + thawedpars
             if N.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
         return p0
