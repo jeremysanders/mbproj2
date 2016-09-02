@@ -213,6 +213,76 @@ class CmptMassPoint(CmptMass):
         phi = -G_cgs * mass_g / r
         return g, phi
 
+class CmptMassArb(CmptMass):
+    """Parametrise mass density using linear interpolation."""
+
+    def __init__(self, annuli, nradbins, suffix=None):
+        CmptMass.__init__(self, 'arb', annuli, suffix=suffix)
+        self.nradbins = nradbins
+
+        # list of all the parameter names for the annuli
+        self.valparnames = ['%s_rho_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+
+        # log annuli (note this breaks if the annuli of the bins were
+        # to change)
+        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
+
+    def defPars(self):
+        rlogannuli = N.log10(self.annuli.midpt_cm / kpc_cm)
+        rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
+        rpars = {
+            n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
+            for n, r in zip(self.radparnames, rlog)
+            }
+
+        valspars = {
+            n: Param(self.defval, minval=-15., maxval=4.)
+            for n in self.valparnames
+            }
+
+        # combined parameters
+        valspars.update(rpars)
+        return valspars
+
+    def computeProf(self, pars):
+        rvals = N.array([pars[n].val for n in self.radparnames])
+        rhovals = N.array([pars[n].val for n in self.valparnames])
+
+        # radii might be in wrong order
+        sortidxs = N.argsort(rvals)
+        rvals = rvals[sortidxs]
+        vvals = vvals[sortidxs]
+
+        # rgrid spanning over range of annuli (and a little inside)
+        rgrid_logkpc = N.linspace(self.logannkpc[0]-0.7, self.logannkpc[-1], 256)
+        rgrid_cent_logkpc = 0.5*(rgrid_logkpc[1:] + rgrid_logkpc[:-1])
+        rgrid_cm = 10**rgrid_logkpc * kpc_cm
+
+        # do interpolating, extending beyond
+        # this is the gradient between each points
+        grads = (vvals[1:]-vvals[:-1]) / (rvals[1:]-rvals[:-1])
+        # index to point below this one (truncating if necessary)
+        idx = N.searchsorted(rvals, rgrid_cent_logkpc)-1
+        idx = N.clip(idx, 0, len(grads)-1)
+        # calculate line from point using gradient to next point
+        dr = rgrid_cent_logkpc - rvals[idx]
+        rho = vvals[idx] + dr*grads[idx]
+        rho = 10**rho
+
+        # compute mass in shells
+        vols_cm3 = (4./3) * N.pi * N.ediff1d(rgrid_cm**3)
+        Mshell_g = rho * vols_cm3
+        # cumulative log mass in shells
+        Mcuml_logg = N.log(N.cumsum(Mshell_g))
+        # do interpolation in log space to get total mass
+        mass_g = N.exp(M.interp(self.logannkpc, rgrid_cent_logkpc, Mcuml_logg))
+
+        r = self.annuli.massav_cm
+        g = G_cgs * mass_g / r**2
+        phi = -G_cgs * mass_g / r
+        return g, phi
+
 class CmptMassMulti(CmptMass):
     """Multi-component mass profile."""
 
