@@ -224,12 +224,8 @@ class CmptMassArb(CmptMass):
         self.valparnames = ['%s_rho_%03i' % (self.name, i) for i in xrange(nradbins)]
         self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
 
-        # log annuli (note this breaks if the annuli of the bins were
-        # to change)
-        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
-
     def defPars(self):
-        rlogannuli = N.log10(self.annuli.midpt_cm / kpc_cm)
+        rlogannuli = self.annuli.midpt_logkpc
         rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
         rpars = {
             n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
@@ -255,7 +251,8 @@ class CmptMassArb(CmptMass):
         vvals = vvals[sortidxs]
 
         # rgrid spanning over range of annuli (and a little inside)
-        rgrid_logkpc = N.linspace(self.logannkpc[0]-0.7, self.logannkpc[-1], 256)
+        logannkpc = self.annuli.massav_logkpc
+        rgrid_logkpc = N.linspace(logannkpc[0]-0.7, logannkpc[-1], 256)
         rgrid_cent_logkpc = 0.5*(rgrid_logkpc[1:] + rgrid_logkpc[:-1])
         rgrid_cm = 10**rgrid_logkpc * kpc_cm
 
@@ -276,7 +273,7 @@ class CmptMassArb(CmptMass):
         # cumulative log mass in shells
         Mcuml_logg = N.log(N.cumsum(Mshell_g))
         # do interpolation in log space to get total mass
-        mass_g = N.exp(M.interp(self.logannkpc, rgrid_cent_logkpc, Mcuml_logg))
+        mass_g = N.exp(M.interp(logannkpc, rgrid_cent_logkpc, Mcuml_logg))
 
         r = self.annuli.massav_cm
         g = G_cgs * mass_g / r**2

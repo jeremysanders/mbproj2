@@ -147,10 +147,6 @@ class CmptMoveRadBase(Cmpt):
         self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
         self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
 
-        # log annuli (note this breaks if the annuli of the bins were
-        # to change)
-        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
-
     def defPars(self):
         valspars = {
             n: Param(self.defval, minval=self.minval, maxval=self.maxval)
@@ -158,7 +154,7 @@ class CmptMoveRadBase(Cmpt):
             }
 
         # log spacing in radius (with radial range fixed)
-        rlogannuli = N.log10(self.annuli.midpt_cm / kpc_cm)
+        rlogannuli = self.annuli.midpt_logkpc
         rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
         rpars = {
             n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
@@ -193,18 +189,19 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
         rvals = rvals[sortidxs]
         vvals = vvals[sortidxs]
 
+        logannkpc = self.annuli.massav_logkpc
         if not self.intbeyond:
             # do interpolation, truncating at bounds
-            prof = N.interp(self.logannkpc, rvals, vvals)
+            prof = N.interp(logannkpc, rvals, vvals)
         else:
             # do interpolating, extending beyond
             # this is the gradient between each points
             grads = (vvals[1:]-vvals[:-1]) / (rvals[1:]-rvals[:-1])
             # index to point below this one (truncating if necessary)
-            idx = N.searchsorted(rvals, self.logannkpc)-1
+            idx = N.searchsorted(rvals, logannkpc)-1
             idx = N.clip(idx, 0, len(grads)-1)
             # calculate line from point using gradient to next point
-            dr = self.logannkpc - rvals[idx]
+            dr = logannkpc - rvals[idx]
             prof = vvals[idx] + dr*grads[idx]
 
         if self.log:
@@ -226,7 +223,7 @@ class CmptBinnedMoveRad(CmptMoveRadBase):
             vvals = 10**vvals
 
         # do binning
-        idxs = N.searchsorted(rvals, self.logannkpc)
+        idxs = N.searchsorted(rvals, self.annuli.massav_logkpc)
         idxsclip = N.clip(idxs, 0, len(vvals)-1)
         prof = vvals[idxsclip]
         return prof
@@ -249,10 +246,6 @@ class CmptBinWidthIncr(Cmpt):
         self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
         self.radparnames = ['%s_dw_%03i' % (self.name, i) for i in xrange(nradbins)]
 
-        # log annuli (note this breaks if the annuli of the bins were
-        # to change)
-        self.ann_kpc = self.annuli.massav_cm / kpc_cm
-
     def defPars(self):
         valspars = {
             n: Param(self.defval, minval=self.minval, maxval=self.maxval)
@@ -260,7 +253,7 @@ class CmptBinWidthIncr(Cmpt):
             }
 
         # widths of bins
-        maxrad_kpc = self.ann_kpc[-1]
+        maxrad_kpc = self.annuli.massav_kpc[-1]
         rvals_kpc = (N.linspace(0, N.sqrt(maxrad_kpc), self.nradbins+1))**2
         logwidths_kpc = rvals_kpc[1:-1] - rvals_kpc[:-2]
         wdelta = N.log10( N.hstack((logwidths_kpc, logwidths_kpc[1:]-logwidths_kpc[:-1])) )
@@ -292,7 +285,7 @@ class CmptBinWidthIncr(Cmpt):
         rvals_kpc = rvals * (outer_kpc / rvals[-1])
         #print(rvals_kpc)
 
-        idxs = N.searchsorted(rvals_kpc, self.ann_kpc)
+        idxs = N.searchsorted(rvals_kpc, self.annuli.massav_kpc)
         idxsclip = N.clip(idxs, 0, len(vvals)-1)
         prof = vvals[idxsclip]
         return prof
@@ -350,16 +343,6 @@ class CmptIncrMoveRad(Cmpt):
         self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
         self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
 
-        # log annuli (note this breaks if the annuli of the bins were
-        # to change)
-        self.logannkpc = N.log10(self.annuli.massav_cm / kpc_cm)
-        ekpc = self.annuli.edges_cm / kpc_cm
-        logekpc = N.log10(ekpc)
-        self.logwidthkpc = logekpc[1:] - logekpc[:-1]
-
-        if not N.isfinite(self.logwidthkpc[0]):
-            self.logwidthkpc[0] = logekpc[1] - 0.5*N.log10(ekpc[0]+ekpc[1])
-
     def defPars(self):
         valspars = {
             n: Param(self.defval, minval=self.minval, maxval=self.maxval)
@@ -391,10 +374,18 @@ class CmptIncrMoveRad(Cmpt):
         rvals = rvals[sortidxs]
         vvals = vvals[sortidxs]
 
-        loggradprof = N.interp(self.logannkpc, rvals, vvals)
+        loggradprof = N.interp(self.annuli.massav_logkpc, rvals, vvals)
         gradprof = 10**loggradprof
 
-        deltas = gradprof * self.logwidthkpc
+        # work out deltas
+        logekpc = self.annuli.edges_logkpc
+        logwidthkpc = logekpc[1:] - logekpc[:-1]
+
+        if not N.isfinite(logwidthkpc[0]):
+            ekpc = self.annuli.edges_kpc
+            logwidthkpc[0] = logekpc[1] - 0.5*N.log10(ekpc[0]+ekpc[1])
+
+        deltas = gradprof * logwidthkpc
         outer = 10**pars['%s_outer' % self.name].val
         prof = N.cumsum(deltas[::-1])[::-1] + outer
 

@@ -12,23 +12,39 @@ class Annuli:
     """Store information about the annuli."""
 
     def __init__(self, edges_arcmin, cosmology):
-        self.cosmology = cosmology
+        self.update(edges_arcmin, cosmology)
+
+    def update(self, edges_arcmin, cosmology):
+        """Change the annuli.
+
+        Useful for recalculating models with new grid.
+        """
 
         self.edges_arcmin = edges_arcmin
+        self.cosmology = cosmology
+
         self.geomarea_arcmin2 = N.pi * (edges_arcmin[1:]**2 - edges_arcmin[:-1]**2)
         self.nshells = len(edges_arcmin) - 1
 
-        # radii of shells
+        # edges of shells
         e = cosmology.kpc_per_arcsec * edges_arcmin * 60 * kpc_cm
         self.edges_cm = e
+        self.edges_kpc = e / kpc_cm
+        self.edges_logkpc = N.log10(self.edges_kpc)
+
+        # inner and outer radii
         rout = self.rout_cm = e[1:]
         rin = self.rin_cm = e[:-1]
 
-        # this is the average radius, assuming constant mass in the shell
-        self.massav_cm = 0.75 * (rout**4 - rin**4) / (rout**3 - rin**3)
-
         # mid point of shell
         self.midpt_cm = 0.5 * (rout + rin)
+        self.midpt_kpc = self.midpt_cm / kpc_cm
+        self.midpt_logkpc = N.log10(self.midpt_kpc)
+
+        # this is the average radius, assuming constant mass in the shell
+        self.massav_cm = 0.75 * (rout**4 - rin**4) / (rout**3 - rin**3)
+        self.massav_kpc = self.massav_cm / kpc_cm
+        self.massav_logkpc = N.log10(self.massav_kpc)
 
         # shell widths
         self.widths_cm = rout - rin
