@@ -14,6 +14,16 @@ class Annuli:
     def __init__(self, edges_arcmin, cosmology):
         self.update(edges_arcmin, cosmology)
 
+    def __getstate__(self):
+        """Don't save derived quantities when pickling."""
+        return {
+            'edges_arcmin': self.edges_arcmin,
+            'cosmology': self.cosmology,
+            }
+    def __setstate__(self, state):
+        """Recalculate derived quantities when unpickling."""
+        self.update(state['edges_arcmin'], state['cosmology'])
+
     def update(self, edges_arcmin, cosmology):
         """Change the annuli.
 
