@@ -143,10 +143,15 @@ class ModelHydro(Model):
 
         # changes in pressure in each bin due to hydrostatic eqbm (h*rho*g)
         deltaP_bins = self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
-        deltaP_ergpcm3 = N.concatenate((deltaP_bins[1:], [P0_ergpcm3]))
 
-        # add up contributions inwards to get total pressure
-        P_ergpcm3 = N.cumsum(deltaP_ergpcm3[::-1])[::-1]
+        # split shells into two, so we can evaluate pressure at midpoints
+        halves = N.repeat(0.5*deltaP_bins, 2)
+        # pressure changes for each half, including outer pressure
+        deltaP_ergpcm3 = N.concatenate((halves[1:], [P0_ergpcm3]))
+
+        # add up contributions inwards to get total pressure,
+        # discarding pressure between shells
+        P_ergpcm3 = N.cumsum(deltaP_ergpcm3[::-1])[::-2]
 
         # calculate temperatures given pressures ad densities
         T_keV = P_ergpcm3 / (P_keV_to_erg * ne_pcm3)
