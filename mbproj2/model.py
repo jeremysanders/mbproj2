@@ -141,13 +141,16 @@ class ModelHydro(Model):
         # add (small) gas contribution to total acceleration
         g_cmps2 += computeGasAccn(self.annuli, ne_pcm3)
 
-        # changes in pressure in each bin due to hydrostatic eqbm (h*rho*g)
-        deltaP_bins = self.annuli.widths_cm * g_cmps2 * ne_pcm3 * (mu_e * mu_g)
+        # changes in pressure in outer and inner halves of bin (around massav)
+        ptmp = g_cmps2 * ne_pcm3 * (mu_e*mu_g)
+        deltah_out = self.annuli.edges_cm[1:] - self.annuli.massav_cm
+        deltaP_out = deltah_out * ptmp
+        deltah_in = self.annuli.massav_cm - self.annuli.edges_cm[:-1]
+        deltaP_in = deltah_in * ptmp
 
-        # split shells into two, so we can evaluate pressure at midpoints
-        halves = N.repeat(0.5*deltaP_bins, 2)
-        # pressure changes for each half, including outer pressure
-        deltaP_ergpcm3 = N.concatenate((halves[1:], [P0_ergpcm3]))
+        # combine halves and include outer pressure
+        deltaP_halves = N.ravel( N.column_stack((deltaP_in, deltaP_out)) )
+        deltaP_ergpcm3 = N.concatenate((deltaP_halves[1:], [P0_ergpcm3]))
 
         # add up contributions inwards to get total pressure,
         # discarding pressure between shells
@@ -194,7 +197,7 @@ class ModelHydroEntropy(Model):
         self.self_gravity = self_gravity
 
     def defPars(self):
-        pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=0.)}
+        pars = {'Pout_logergpcm3': Param(-13., minval=-16., maxval=0.)}
         pars.update(self.mass_cmpt.defPars())
         pars.update(self.K_cmpt.defPars())
         pars.update(self.Z_cmpt.defPars())
