@@ -40,7 +40,7 @@ class XSpecHelper(object):
 
     specialcode = '@S@T@V'
     specialre = re.compile('%s (.*) %s' % (specialcode, specialcode))
-    normfactor = 1e70 # multiply norm by this to get into sensible units in xspec
+    normfactor = 1e75 # multiply norm by this to get into sensible units in xspec
 
     def __init__(self):
         self.xspecsub = subprocess.Popen(['xspec'],

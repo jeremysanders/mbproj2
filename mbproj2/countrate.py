@@ -42,6 +42,7 @@ class CountRate(object):
 
         # evaluate interpolation functions for temperature given
         a0, a1 = self.ctcache[key]
+        T_keV = N.clip(T_keV, self.Tmin, self.Tmax)
         logT = N.log(T_keV)
         Z0_ctrate = N.exp(N.interp(logT, self.Tlogvals, a0))
         Z1_ctrate = N.exp(N.interp(logT, self.Tlogvals, a1))
@@ -74,6 +75,8 @@ class CountRate(object):
                             countrate = xspec.getCountsPerSec(
                                 NH_1022, N.exp(Tlog), Z_solar, self.cosmo, 1.)
                             Zresults.append(countrate)
+                        Zresults = N.array(Zresults)
+                        Zresults[Zresults < 1e-300] = 1e-300
                         allZresults.append(Zresults)
                     xspec.finish()
                     allZresults = N.array(allZresults)
