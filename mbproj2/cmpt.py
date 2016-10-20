@@ -451,43 +451,59 @@ class CmptDoubleBeta(Cmpt):
                 pars['%s_rc_2' % self.name].val))
 
 class CmptVikhDensity(Cmpt):
-    """Density model from Vikhlinin+06, Eqn 3."""
+    """Density model from Vikhlinin+06, Eqn 3.
+
+    Use double mode for 2nd component or single otherwise
+    """
+
+    def __init__(self, name, annuli, mode='double'):
+        Cmpt.__init__(self, name, annuli)
+        self.mode = mode
 
     def defPars(self):
-        return {
+        pars = {
             '%s_n0_1' % self.name: Param(-3., minval=-7., maxval=2.),
-            '%s_n0_2' % self.name: Param(-1., minval=-7., maxval=2.),
             '%s_beta_1' % self.name: Param(2/3., minval=0., maxval=4.),
-            '%s_beta_2' % self.name: Param(0.5, minval=0., maxval=4.),
-            '%s_logrc_2' % self.name: Param(1.7, minval=-1., maxval=3.7),
             '%s_logrc_1' % self.name: Param(2.3, minval=-1., maxval=3.7),
             '%s_logr_s' % self.name: Param(2.7, minval=0, maxval=3.7),
             '%s_alpha' % self.name: Param(0., minval=-1, maxval=2.),
             '%s_epsilon' % self.name: Param(3., minval=0., maxval=5.),
             '%s_gamma' % self.name: Param(3., minval=0., maxval=10, frozen=True),
             }
+        if self.mode == 'double':
+            pars.update({
+                    '%s_n0_2' % self.name: Param(-1., minval=-7., maxval=2.),
+                    '%s_beta_2' % self.name: Param(0.5, minval=0., maxval=4.),
+                    '%s_logrc_2' % self.name: Param(1.7, minval=-1., maxval=3.7),
+                    })
+        return pars
 
     def vikhFunction(self, pars, radii_kpc):
         n0_1 = 10**pars['%s_n0_1' % self.name].val
-        n0_2 = 10**pars['%s_n0_2' % self.name].val
         beta_1 = pars['%s_beta_1' % self.name].val
-        beta_2 = pars['%s_beta_2' % self.name].val
         rc_1 = 10**pars['%s_logrc_1' % self.name].val
-        rc_2 = 10**pars['%s_logrc_2' % self.name].val
         r_s = 10**pars['%s_logr_s' % self.name].val
         alpha = pars['%s_alpha' % self.name].val
         epsilon = pars['%s_epsilon' % self.name].val
         gamma = pars['%s_gamma' % self.name].val
 
         r = radii_kpc
-        return N.sqrt(
+
+        retn_sqd = (
             n0_1**2 *
             (r/rc_1)**(-alpha) / (
                 (1+r**2/rc_1**2)**(3*beta_1-0.5*alpha) *
                 (1+(r/r_s)**gamma)**(epsilon/gamma)
-                ) +
-            n0_2**2 / (1 + r**2/rc_2**2)**(3*beta_2)
+                )
             )
+        if self.mode == 'double':
+            n0_2 = 10**pars['%s_n0_2' % self.name].val
+            rc_2 = 10**pars['%s_logrc_2' % self.name].val
+            beta_2 = pars['%s_beta_2' % self.name].val
+
+            retn_sqd += n0_2**2 / (1 + r**2/rc_2**2)**(3*beta_2)
+
+        return N.sqrt(retn_sqd)
 
     def computeProf(self, pars):
         return self.vikhFunction(pars, self.annuli.midpt_cm / kpc_cm)
