@@ -111,7 +111,7 @@ class ModelHydro(Model):
 
     def defPars(self):
         """Return default model parameters dict."""
-        pars = {'Pout_logergpcm3': Param(-15., minval=-30., maxval=-8.)}
+        pars = {'Pout_logergpcm3': Param(-15., minval=-20., maxval=-8.)}
         pars.update(self.mass_cmpt.defPars())
         pars.update(self.ne_cmpt.defPars())
         pars.update(self.Z_cmpt.defPars())

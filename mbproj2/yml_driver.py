@@ -55,12 +55,18 @@ def constructData(pars, annuli):
 
     bands = []
     for b in pars['bands']:
+        cts = readProfile(b['cts'])
+        if 'backrate' in b:
+            back = readProfile(b['backrate'])
+        else:
+            back = N.zeros(cts.shape)
+
         band = data.Band(
             b['emin_keV'], b['emax_keV'],
-            readProfile(b['cts']),
+            cts,
             b['rmfs'], b['arfs'],
             readProfile(b['exposures']),
-            backrates=readProfile(b['backrate']),
+            backrates=back,
             areascales=areascales)
         bands.append(band)
 
