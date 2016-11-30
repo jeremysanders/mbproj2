@@ -112,11 +112,12 @@ def physFromProfs(model, pars):
 
     return v
 
-def computePhysChains(chainfilename, model, pars, burn=0, thin=10):
+def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=False):
     """Compute set of chains for each physical quantity.
 
     burn: skip initial N items in chain
     thin: skip every N iterations in chain
+    randsample: randomly sample from chain at thin interval
 
     Returns tuple:
      dict of name with profiles,
@@ -125,13 +126,21 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10):
     """
 
     uprint('Computing physical quantities from chain', chainfilename)
-    with h5py.File(chainfilename) as f:
+    with h5py.File(chainfilename, 'r') as f:
         fakefit = fit.Fit(pars, model, None)
         if fakefit.thawed != list(f['thawed_params']):
             raise RuntimeError('Parameters do not match those in chain')
 
-        chain = f['chain'][:, burn::thin, :]
-        chain = chain.reshape(-1, chain.shape[2])
+        if randsample:
+            #print('Geting random sample')
+            chain = f['chain'][:, burn:, :]
+            chain = chain.reshape(-1, chain.shape[2])
+            rows = N.arange(chain.shape[0])
+            N.random.shuffle(rows)
+            chain = chain[rows[:len(rows)//thin], :]
+        else:
+            chain = f['chain'][:, burn::thin, :]
+            chain = chain.reshape(-1, chain.shape[2])
 
     # iterate over input
     data = defaultdict(list)
