@@ -189,7 +189,8 @@ def savePhysChain(infilename, outfilename, model, pars, burn=0, thin=10):
                 d = d.astype(N.float32)
             f.create_dataset(v, data=d, compression=True, shuffle=True)
 
-def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269):
+def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269,
+                    randsample=False):
     """Replay chain, compute physical quantity profiles.
 
     confint: confidence interval
@@ -202,7 +203,7 @@ def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269)
 
     # get values to compute medians from
     data, r_arcmin, r_kpc = computePhysChains(
-        chainfilename, model, pars, burn=burn, thin=thin)
+        chainfilename, model, pars, burn=burn, thin=thin, randsample=randsample)
 
     # compute medians and errors
     uprint(' Computing medians')
