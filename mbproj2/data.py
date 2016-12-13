@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division, print_function
-from itertools import izip
 import numpy as N
-from physconstants import kpc_cm
-import utils
-from utils import uprint
-import countrate
+
+from .physconstants import kpc_cm
+from . import utils
+from .utils import uprint
+from . import countrate
 
 class Annuli:
     """Store information about the annuli."""

@@ -1,12 +1,12 @@
 from __future__ import division, print_function
 import numpy as N
 
-import cmpt
-import model
-import fit
-import utils
-from utils import uprint
-from physconstants import kpc_cm
+from . import cmpt
+from . import model
+from . import fit
+from . import utils
+from .utils import uprint
+from .physconstants import kpc_cm
 
 def estimateDensityProfile(inmodel, data, modelpars):
     """Do a simplified fit to get the initial density profile.

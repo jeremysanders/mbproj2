@@ -1,12 +1,12 @@
 from __future__ import division, print_function
-from itertools import izip
 import cPickle as pickle
 
+import six
 import scipy.optimize
 import numpy as N
 
-import utils
-from utils import uprint
+from . import utils
+from .utils import uprint
 
 try:
     import veusz.embed as veusz
@@ -88,7 +88,7 @@ class Fit:
         """
 
         likelihood = 0.
-        for band, predprof in izip(self.data.bands, predprofs):
+        for band, predprof in six.zip(self.data.bands, predprofs):
             likelihood += utils.cashLogLikelihood(band.cts, predprof)
         return likelihood
 
@@ -97,7 +97,7 @@ class Fit:
         return [self.pars[name].val for name in self.thawed]
 
     def updateThawed(self, vals):
-        for val, name in izip(vals, self.thawed):
+        for val, name in six.zip(vals, self.thawed):
             self.pars[name].val = val
 
     def penaltyTrimBounds(self):

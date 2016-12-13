@@ -40,14 +40,11 @@ Requirements
 ------------
 MBPROJ2 requires the following:
 
- 1. Python 2.7 or greater
+1. Python 2.7+ or 3.3+ or greater
+2. emcee http://dan.iel.fm/emcee/
+3. h5py  http://www.h5py.org/
+4. numpy http://www.numpy.org/
+5. scipy http://www.scipy.org/
+6. yaml  http://pyyaml.org/wiki/PyYAML
+7. xspec https://heasarc.gsfc.nasa.gov/xanadu/xspec/
 
- 1. emcee http://dan.iel.fm/emcee/
-
- 1. h5py  http://www.h5py.org/
-
- 1. numpy http://www.numpy.org/
-
- 1. scipy http://www.scipy.org/
-
- 1. yaml  http://pyyaml.org/wiki/PyYAML

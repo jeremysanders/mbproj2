@@ -5,9 +5,9 @@ import h5py
 import emcee
 import numpy as N
 
-import utils
-from utils import uprint
-import forkparallel
+from . import utils
+from .utils import uprint
+from . import forkparallel
 
 class MultiProcessPool:
     """Use ForkQueue to evaluate multiple profiles simultaneously."""

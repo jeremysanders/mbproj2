@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import numpy as N
 from scipy.special import gammaln
 
-from itertools import izip
 import sys
 import os
 import time
@@ -72,15 +71,6 @@ def symmetriseErrors(data):
     datacpy = N.array(data[:,0:2])
     datacpy[:,1] = symerr
     return datacpy
-
-def binValues(rin, rout, vals):
-    """Bin values at radii rin and values vals to be in radii rout."""
-    newbins = rout.searchsorted(rin)
-    counts = N.bincount(newbins)
-    sums = N.zeros(counts.shape)
-    for newbin, val in izip(newbins, vals):
-        sums[newbin] += val
-    return sums / counts
 
 def getMedianAndErrors(results):
     """Take a set of repeated results, and calculate the median and errors (from perecentiles)."""

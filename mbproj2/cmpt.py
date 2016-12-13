@@ -7,8 +7,8 @@ import math
 import numpy as N
 from scipy.special import hyp2f1
 
-from fit import Param
-from physconstants import kpc_cm
+from .fit import Param
+from .physconstants import kpc_cm
 
 class Cmpt:
     """Parametrise a profile."""

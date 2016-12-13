@@ -11,8 +11,8 @@ import sys
 from math import pi
 import signal
 
-from physconstants import Mpc_cm, ne_nH
-import cosmo
+from .physconstants import Mpc_cm, ne_nH
+from . import cosmo
 
 def deleteFile(filename):
     """Delete file, ignoring errors."""

@@ -14,8 +14,8 @@ import h5py
 import numpy as N
 import scipy.interpolate
 
-import utils
-from xspechelper import XSpecHelper
+from . import utils
+from .xspechelper import XSpecHelper
 
 class CountRate(object):
     """Object caches count rates for temperatures, densities and metallicites."""

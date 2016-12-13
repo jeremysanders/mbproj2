@@ -6,11 +6,11 @@ import os
 import numpy as N
 import h5py
 
-from physconstants import (
+from .physconstants import (
     kpc_cm, keV_erg, ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, Mpc_cm,
     yr_s, solar_mass_g, G_cgs, P_keV_to_erg)
-from utils import uprint
-import fit
+from .utils import uprint
+from . import fit
 
 # we want to define the cumulative values half way in the
 # shell, so we have to split the luminosity and mass across

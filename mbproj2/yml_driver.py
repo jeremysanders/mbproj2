@@ -10,16 +10,16 @@ import math
 import numpy as N
 import yaml
 
-import data
-import cosmo
-import cmpt
-import cmpt_mass
-import model
-import fit
-import helpers
-import phys
-import mcmc
-from utils import uprint
+from . import data
+from . import cosmo
+from . import cmpt
+from . import cmpt_mass
+from . import model
+from . import fit
+from . import helpers
+from . import phys
+from . import mcmc
+from .utils import uprint
 
 def readProfile(arg):
     """Read a particular column from a file, ignoring blank lines."""
