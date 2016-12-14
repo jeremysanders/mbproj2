@@ -22,7 +22,7 @@
 
 from __future__ import division, print_function
 
-import six
+from six.moves import range, zip
 import six.moves.cPickle as pickle
 import scipy.optimize
 import numpy as N
@@ -117,7 +117,7 @@ class Fit:
         """
 
         likelihood = 0.
-        for band, predprof in six.zip(self.data.bands, predprofs):
+        for band, predprof in zip(self.data.bands, predprofs):
             likelihood += utils.cashLogLikelihood(band.cts, predprof)
         return likelihood
 
@@ -126,7 +126,7 @@ class Fit:
         return [self.pars[name].val for name in self.thawed]
 
     def updateThawed(self, vals):
-        for val, name in six.zip(vals, self.thawed):
+        for val, name in zip(vals, self.thawed):
             self.pars[name].val = val
 
     def penaltyTrimBounds(self):
@@ -287,7 +287,7 @@ def genericPopulationMinimizer(
     newfun = N.zeros(newnum)
     newpar = N.zeros((newnum, poppar.shape[1]))
 
-    for gen in six.range(maxiter):
+    for gen in range(maxiter):
 
         # Sort into function order, keeping fraction. This could be a
         # partition, but this let's us keep track of what the best

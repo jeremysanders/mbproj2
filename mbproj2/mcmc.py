@@ -18,7 +18,7 @@
 
 """For doing MCMC given Fit object."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 import os
 
 import h5py
@@ -176,7 +176,7 @@ class MCMC:
                 f.attrs[h] = self.header[h]
 
             # write list of parameters which are thawed
-            f['thawed_params'] = self.fit.thawed
+            f['thawed_params'] = [x.encode('utf-8') for x in self.fit.thawed]
 
             # output chain
             f.create_dataset(

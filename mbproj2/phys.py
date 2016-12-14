@@ -23,6 +23,7 @@ from math import pi
 from collections import defaultdict
 import os
 
+from six.moves import range
 import six
 import numpy as N
 import h5py
@@ -117,7 +118,7 @@ def physFromProfs(model, pars):
             [0], v['H_ergpg'][1:]-v['H_ergpg'][:-1]))
 
     Mdotcuml_gps = 0.
-    for i in six.range(nshells):
+    for i in range(nshells):
         # total energy going into mdot in this shell, subtracting contribution
         # of matter which flows inwards
         E_tot_ergps = (
@@ -149,7 +150,8 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=Fa
     uprint('Computing physical quantities from chain', chainfilename)
     with h5py.File(chainfilename, 'r') as f:
         fakefit = fit.Fit(pars, model, None)
-        if fakefit.thawed != list(f['thawed_params']):
+        filethawed = [x.decode('utf-8') for x in f['thawed_params']]
+        if fakefit.thawed != filethawed:
             raise RuntimeError('Parameters do not match those in chain')
 
         if randsample:

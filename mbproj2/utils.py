@@ -21,7 +21,7 @@
 
 from __future__ import division, print_function
 
-import six
+from six.moves import range
 import numpy as N
 from scipy.special import gammaln
 
@@ -140,7 +140,7 @@ class WithLock:
 
     def __enter__(self):
         timeout = 500 # seconds
-        for i in six.range(timeout):
+        for i in range(timeout):
             try:
                 os.mkdir(self.filename)
                 break

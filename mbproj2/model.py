@@ -25,7 +25,7 @@ ModelHydro: hydrostatic model, parameterized by density profile
 from __future__ import division, print_function
 import math
 
-import six
+from six.moves import range
 import numpy as N
 
 from .fit import Param
@@ -286,7 +286,7 @@ class ModelHydroEntropy(Model):
 
             ne_pcm3 = []
             P_ergpcm3 = P0_ergpcm3
-            for i in six.range(self.annuli.nshells-1, -1, -1):
+            for i in range(self.annuli.nshells-1, -1, -1):
                 ne = (P_ergpcm3 / P_keV_to_erg / Ke_keVcm2[i])**(3./5.)
                 P_ergpcm3 += self.annuli.widths_cm[i] * tot_g_cmps2[i] * ne * (mu_e * mu_g)
                 ne_pcm3.insert(0, ne)

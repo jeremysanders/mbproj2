@@ -21,7 +21,7 @@ Taken from Ned Wright's cosmology calculator."""
 
 from __future__ import division, print_function
 from math import sqrt, pi, sin, exp
-import six
+from six.moves import range
 
 c = 299792.458 # velocity of light in km/sec
 Tyr = 977.8    # coefficent for converting 1/H into Gyr
@@ -73,7 +73,7 @@ class Cosmology(object):
         az = 1./(1.+z)
         age = 0.
         n=1000         # number of points in integrals
-        for i in six.range(n):
+        for i in range(n):
             a = az*(i+0.5)/n
             adot = sqrt(WK+(WM/a)+(WR/(a*a))+(WV*a*a))
             age = age + 1./adot
@@ -84,7 +84,7 @@ class Cosmology(object):
         DCMR = 0.
 
         # do integral over a=1/(1+z) from az to 1 in n steps, midpoint rule
-        for i in six.range(n):
+        for i in range(n):
             a = az+(1-az)*(i+0.5)/n
             adot = sqrt(WK+(WM/a)+(WR/(a*a))+(WV*a*a))
             DTT = DTT + 1./adot
