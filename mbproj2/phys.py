@@ -173,7 +173,7 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=Fa
         fakefit.updateThawed(parvals)
 
         physvals = physFromProfs(model, fakefit.pars)
-        for name, vals in physvals.iteritems():
+        for name, vals in six.iteritems(physvals):
             data[name].append(vals)
 
     # convert to numpy arrays
@@ -215,7 +215,7 @@ def savePhysChain(
         f['r_arcmin'] = r_arcmin
         f['r_kpc'] = r_kpc
 
-        for v, d in data.iteritems():
+        for v, d in six.iteritems(data):
             if N.all(N.abs(d[N.isfinite(d)]) < 3e38):
                 # shrink values to float32 if possible
                 d = d.astype(N.float32)
@@ -242,7 +242,7 @@ def replayChainPhys(
     # compute medians and errors
     uprint(' Computing medians')
     outprofs = {}
-    for name, vals in data.iteritems():
+    for name, vals in six.iteritems(data):
         # compute percentiles
         median, posrange, negrange = N.percentile(
             vals, [50, 50+confint/2, 50-confint/2], axis=0)

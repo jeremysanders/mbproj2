@@ -254,9 +254,9 @@ class YMLDriver:
 
         # first fit, freezing density
         uprint("Fitting with frozen densities")
-        for name, par in self.pars.iteritems():
+        for name in self.pars:
             if name[:3] == 'ne_':
-                par.frozen = True
+                self.pars[name].frozen = True
 
         # freeze background scaling (if used)
         if 'backscale' in self.pars:
@@ -268,9 +268,9 @@ class YMLDriver:
 
         # then thaw again
         uprint("Thawing densities")
-        for name, par in self.pars.iteritems():
+        for name in self.pars:
             if name[:3] == 'ne_':
-                par.frozen = False
+                self.pars[name].frozen = False
 
         thefit.refreshThawed()
         self.model.ne_cmpt.priorjump = 2.0

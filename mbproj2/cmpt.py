@@ -519,7 +519,7 @@ class CmptDoubleBeta(Cmpt):
         return {
             '%s_n0_1' % self.name: Param(-2., minval=-7., maxval=2.),
             '%s_beta_1' % self.name: Param(2/3, minval=0., maxval=4.),
-            '%s_rc_1' % self.name: Param(1.3, minval=-1,, maxval=3.7),
+            '%s_rc_1' % self.name: Param(1.3, minval=-1., maxval=3.7),
             '%s_n0_2' % self.name: Param(-3., minval=-7., maxval=2.),
             '%s_beta_2' % self.name: Param(0.5, minval=0., maxval=4.),
             '%s_rc_2' % self.name: Param(2, minval=-1., maxval=3.7),

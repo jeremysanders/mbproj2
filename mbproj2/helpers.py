@@ -116,7 +116,7 @@ def initialNeCmptBinnedFromBeta(
 
     uprint('Estimated profile:', N.log10(ne_binned_cmpt.computeProf(binnedpars)))
 
-    outpars = {par: val for par, val in binnedpars.iteritems()
+    outpars = {par: val for par, val in binnedpars.items()
                if par[:3] == 'ne_'}
     return ne_binned_cmpt, outpars
 
@@ -223,6 +223,6 @@ def initialNeCmptInterpolMoveRadFromBeta(
 
     uprint('Estimated profile:', N.log10(ne_moving_cmpt.computeProf(movingpars)))
 
-    outpars = {par: val for par, val in movingpars.iteritems()
+    outpars = {par: val for par, val in movingpars.items()
                if par[:3] == 'ne_'}
     return ne_moving_cmpt, outpars
