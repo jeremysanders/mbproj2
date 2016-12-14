@@ -1,6 +1,25 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
 """Module to run a forked parallel process for evalulating functions,
 one at a time (ForkParellel) or using a queue of input data
-(ForkQueue)."""
+(ForkQueue).
+"""
 
 from __future__ import division, print_function
 
@@ -10,10 +29,7 @@ import struct
 import select
 import signal
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import six.moves.cPickle as pickle
 
 # special exit code to break out of child
 exitcode = b'*[EX!T}*FORK'
@@ -186,7 +202,7 @@ class ForkQueue(ForkBase):
         self.socks = []
         self.pids = []
 
-        for i in xrange(instances):
+        for i in range(instances):
             parentsock, childsock = socket.socketpair()
 
             pid = os.fork()

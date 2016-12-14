@@ -1,9 +1,26 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
 
-"""Module to get count rates for temperatures, densities and metallicities.
+"""Module to get count rates for temperatures, densities and
+metallicities.
 
-Results are taken from xspec, interpolating between results at fixed temperatures
-and metallicities
+Results are taken from xspec, interpolating between results at fixed
+temperatures and metallicities
 """
 
 from __future__ import division, print_function
@@ -17,8 +34,9 @@ import scipy.interpolate
 from . import utils
 from .xspechelper import XSpecHelper
 
-class CountRate(object):
-    """Object caches count rates for temperatures, densities and metallicites."""
+class CountRate:
+    """Object caches count rates for temperatures, densities and
+    metallicities."""
 
     Tmin = 0.06
     Tmax = 60.
@@ -33,7 +51,8 @@ class CountRate(object):
 
     def getCountRate(self, rmf, arf, minenergy_keV, maxenergy_keV,
                      NH_1022, T_keV, Z_solar, ne_cm3):
-        """get count rate in counts per cm3 for parcel of gas between energies given."""
+        """get count rate in counts per cm3 for parcel of gas between energies
+        given."""
 
         key = (minenergy_keV, maxenergy_keV, self.cosmo.z, NH_1022, rmf, arf)
 
@@ -51,7 +70,10 @@ class CountRate(object):
         return (Z0_ctrate + (Z1_ctrate-Z0_ctrate)*Z_solar)*ne_cm3**2
 
     def addCountCache(self, key):
-        """Work out the counts for the temperature values for the key given."""
+        """Work out the counts for the temperature values for the key
+        given.
+        """
+
         minenergy_keV, maxenergy_keV, z, NH_1022, rmf, arf = key
 
         if not os.path.exists(rmf):

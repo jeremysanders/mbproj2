@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""CmptMass objects define dark matter potentials."""
+
 from __future__ import division, print_function
 
 import math
@@ -9,6 +29,7 @@ from .cmpt import Cmpt
 from .physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm, solar_mass_g
 
 class CmptMass(Cmpt):
+    """Base mass component."""
     def __init__(self, name, annuli, suffix=''):
         if suffix:
             name = '%s_%s' % (name, suffix)
@@ -26,6 +47,10 @@ class CmptMassNFW(CmptMass):
     """
 
     def __init__(self, annuli, suffix=None):
+        """
+        annuli: Annuli object
+        suffix: suffix to append to name nfw in parameters
+        """
         CmptMass.__init__(self, 'nfw', annuli, suffix=suffix)
 
     def defPars(self):
@@ -91,6 +116,10 @@ class CmptMassGNFW(CmptMass):
     """
 
     def __init__(self, annuli, suffix=None):
+        """
+        annuli: Annuli object
+        suffix: suffix to append to name gnfw in parameters
+        """
         CmptMass.__init__(self, 'gnfw', annuli, suffix=suffix)
 
     def defPars(self):
@@ -162,6 +191,10 @@ class CmptMassKing(CmptMass):
     """
 
     def __init__(self, annuli, suffix=None):
+        """
+        annuli: Annuli object
+        suffix: suffix to append to name king in parameters
+        """
         CmptMass.__init__(self, 'king', annuli, suffix=suffix)
 
     def defPars(self):
@@ -198,6 +231,10 @@ class CmptMassPoint(CmptMass):
     """Point mass."""
 
     def __init__(self, annuli, suffix=None):
+        """
+        annuli: Annuli object
+        suffix: suffix to append to name pt in parameters
+        """
         CmptMass.__init__(self, 'pt', annuli, suffix=suffix)
 
     def defPars(self):
@@ -214,15 +251,19 @@ class CmptMassPoint(CmptMass):
         return g, phi
 
 class CmptMassArb(CmptMass):
-    """Parametrise mass density using linear interpolation."""
+    """Parametrise mass density using interpolation."""
 
     def __init__(self, annuli, nradbins, suffix=None):
+        """
+        annuli: Annuli object
+        suffix: suffix to append to name arb in parameters
+        """        
         CmptMass.__init__(self, 'arb', annuli, suffix=suffix)
         self.nradbins = nradbins
 
         # list of all the parameter names for the annuli
-        self.valparnames = ['%s_rho_%03i' % (self.name, i) for i in xrange(nradbins)]
-        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.valparnames = ['%s_rho_%03i' % (self.name, i) for i in range(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in range(nradbins)]
 
     def defPars(self):
         rlogannuli = self.annuli.midpt_logkpc
@@ -281,9 +322,14 @@ class CmptMassArb(CmptMass):
         return g, phi
 
 class CmptMassMulti(CmptMass):
-    """Multi-component mass profile."""
+    """Multi-component mass profile made up CmptMass objects."""
 
     def __init__(self, name, annuli, cmpts, suffix=None):
+        """
+        name: name of component
+        annuli: Annuli object
+        cmpts: list of CmptMass objects
+        """
         CmptMass.__init__(self, name, annuli, suffix=suffix)
         self.cmpts = cmpts
 

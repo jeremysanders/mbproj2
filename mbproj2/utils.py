@@ -1,5 +1,27 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Collections of functions used by MBPROJ2.
+"""
+
 from __future__ import division, print_function
 
+import six
 import numpy as N
 from scipy.special import gammaln
 
@@ -118,7 +140,7 @@ class WithLock:
 
     def __enter__(self):
         timeout = 500 # seconds
-        for i in xrange(timeout):
+        for i in six.range(timeout):
             try:
                 os.mkdir(self.filename)
                 break

@@ -1,8 +1,27 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
 """Routines for calculating distances from cosmology,
 Taken from Ned Wright's cosmology calculator."""
 
 from __future__ import division, print_function
 from math import sqrt, pi, sin, exp
+import six
 
 c = 299792.458 # velocity of light in km/sec
 Tyr = 977.8    # coefficent for converting 1/H into Gyr
@@ -29,43 +48,43 @@ class Cosmology(object):
         WR = 0.        # Omega(radiation)
         WK = 0.        # Omega curvaturve = 1-Omega(total)
         DTT = 0.5      # time from z to now in units of 1/H0
-        DTT_Gyr = 0.0  # value of DTT in Gyr
+        DTT_Gyr = 0.   # value of DTT in Gyr
         age = 0.5      # age of Universe in units of 1/H0
-        age_Gyr = 0.0  # value of age in Gyr
+        age_Gyr = 0.   # value of age in Gyr
         zage = 0.1     # age of Universe at redshift z in units of 1/H0
-        zage_Gyr = 0.0 # value of zage in Gyr
-        DCMR = 0.0     # comoving radial distance in units of c/H0
-        DCMR_Mpc = 0.0
-        DCMR_Gyr = 0.0
-        DA = 0.0       # angular size distance
-        DA_Mpc = 0.0
-        DA_Gyr = 0.0
-        kpc_DA = 0.0
-        DL = 0.0       # luminosity distance
-        DL_Mpc = 0.0
-        DL_Gyr = 0.0   # DL in units of billions of light years
-        V_Gpc = 0.0
-        a = 1.0        # 1/(1+z), the scale factor of the Universe
-        az = 0.5       # 1/(1+z(object))
+        zage_Gyr = 0.  # value of zage in Gyr
+        DCMR = 0.      # comoving radial distance in units of c/H0
+        DCMR_Mpc = 0.
+        DCMR_Gyr = 0.
+        DA = 0.        # angular size distance
+        DA_Mpc = 0.
+        DA_Gyr = 0.
+        kpc_DA = 0.
+        DL = 0.        # luminosity distance
+        DL_Mpc = 0.
+        DL_Gyr = 0.    # DL in units of billions of light years
+        V_Gpc = 0.
+        a = 1.         # 1/(1+z), the scale factor of the Universe
+        az = 0.        # 1/(1+z(object))
 
         h = H0/100.
-        WR = 4.165E-5/(h*h)   # includes 3 massless neutrino species, T0 = 2.72528
+        WR = 4.165e-5/(h*h)   # includes 3 massless neutrino species, T0 = 2.72528
         WK = 1-WM-WR-WV
-        az = 1.0/(1+1.0*z)
+        az = 1./(1.+z)
         age = 0.
         n=1000         # number of points in integrals
-        for i in xrange(n):
+        for i in six.range(n):
             a = az*(i+0.5)/n
             adot = sqrt(WK+(WM/a)+(WR/(a*a))+(WV*a*a))
             age = age + 1./adot
 
         zage = az*age/n
         zage_Gyr = (Tyr/H0)*zage
-        DTT = 0.0
-        DCMR = 0.0
+        DTT = 0.
+        DCMR = 0.
 
         # do integral over a=1/(1+z) from az to 1 in n steps, midpoint rule
-        for i in xrange(n):
+        for i in six.range(n):
             a = az+(1-az)*(i+0.5)/n
             adot = sqrt(WK+(WM/a)+(WR/(a*a))+(WV*a*a))
             DTT = DTT + 1./adot
@@ -80,7 +99,7 @@ class Cosmology(object):
         DCMR_Mpc = (c/H0)*DCMR
 
         # tangential comoving distance
-        ratio = 1.00
+        ratio = 1.
         x = sqrt(abs(WK))*DCMR
         if x > 0.1:
             if WK > 0:

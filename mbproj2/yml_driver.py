@@ -1,10 +1,28 @@
-# Compatibility driver for using mbproj1 yml files
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Compatibility driver for using mbproj1 yml files."""
 
 from __future__ import division, print_function
 
 import argparse
 import os
-import cPickle as pickle
+import six.moves.cPickle as pickle
 import math
 
 import numpy as N
@@ -105,7 +123,7 @@ def constructCmpt(subpars, annuli, name, defpars):
         defpars['n0'].frozen = subpars.get('n0_fixed', False)
         defpars['beta'].val = subpars.get('beta', 2./3.)
         defpars['beta'].frozen = subpars.get('beta_fixed', False)
-        defpars['rc'].val = subpars.get('rc', 50.)
+        defpars['rc'].val = N.log10(subpars.get('rc', 50.))
         defpars['rc'].frozen = subpars.get('rc_fixed', False)
     elif subpars['type'] == 'VikhDensity':
         m = cmpt.CmptVikhDensity(name, annuli)

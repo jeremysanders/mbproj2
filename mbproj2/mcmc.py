@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""For doing MCMC given Fit object."""
+
 from __future__ import division, print_function
 import os
 
@@ -10,7 +30,8 @@ from .utils import uprint
 from . import forkparallel
 
 class MultiProcessPool:
-    """Use ForkQueue to evaluate multiple profiles simultaneously."""
+    """Internal object to use ForkQueue to evaluate multiple profiles
+    simultaneously."""
 
     def __init__(self, func, processes):
         self.queue = forkparallel.ForkQueue(func, processes)
@@ -148,6 +169,7 @@ class MCMC:
             os.unlink(outfilename)
         except OSError:
             pass
+
         with h5py.File(outfilename) as f:
             # write header entries
             for h in sorted(self.header):

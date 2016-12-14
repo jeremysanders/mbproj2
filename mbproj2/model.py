@@ -1,16 +1,43 @@
-# Clusters models built from components. Includes models which assume
-# hydrostatic equilibrium and those that don't
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Define hydrostatic and non-hydrostatic models.
+
+ModelNullPot: non-hydrostatic model, equivalent to spectral fitting
+ModelHydro: hydrostatic model, parameterized by density profile
+"""
 
 from __future__ import division, print_function
-
-from fit import Param
 import math
+
+import six
 import numpy as N
-from physconstants import ne_nH, mu_g, mu_e, P_keV_to_erg, G_cgs
+
+from .fit import Param
+from .physconstants import ne_nH, mu_g, mu_e, P_keV_to_erg, G_cgs
 
 class Model:
     def __init__(self, annuli, NH_1022pcm2=None):
-        """Initialise Model. annuli is an Annuli object."""
+        """Initialise Model.
+
+        annuli is an Annuli object.
+        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        """
         self.annuli = annuli
         assert NH_1022pcm2 is not None
         self.NH_1022pcm2 = NH_1022pcm2
@@ -42,6 +69,13 @@ class ModelNullPot(Model):
     """
 
     def __init__(self, annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=None):
+        """
+        annuli is an Annuli object.
+        ne_cmpt: Cmpt object for density
+        T_cmpt: Cmpt object for temperature
+        Z_cmpt: Cmpt object for metallicity
+        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        """
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.ne_cmpt = ne_cmpt
         self.T_cmpt = T_cmpt
@@ -104,6 +138,13 @@ class ModelHydro(Model):
     """
 
     def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt, NH_1022pcm2=None):
+        """
+        annuli is an Annuli object.
+        mass_cmpt: CmptMass object for dark matter mass
+        ne_cmpt: Cmpt object for density
+        Z_cmpt: Cmpt object for metallicity
+        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        """
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.mass_cmpt = mass_cmpt
         self.ne_cmpt = ne_cmpt
@@ -184,11 +225,22 @@ class ModelHydroEntropy(Model):
     but parameterising using the entropy (K), not density.
 
     Temperature is calculated assuming hydrostatic equilibrium.
-    Included parameter is the outer pressure Pout
+    Included parameter is the outer pressure Pout.
+
+    Note that this code hasn't been tested very much, so use with caution!
     """
 
     def __init__(
         self, annuli, mass_cmpt, K_cmpt, Z_cmpt, NH_1022pcm2=None, self_gravity=True):
+        """
+        annuli is an Annuli object.
+        mass_cmpt: CmptMass object for dark matter mass
+        K_cmpt: Cmpt object for entropy
+        Z_cmpt: Cmpt object for metallicity
+        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        self_gravity: include loop to iteratively calculate self-gravity
+          of baryonic mass
+        """
 
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.mass_cmpt = mass_cmpt
@@ -228,13 +280,13 @@ class ModelHydroEntropy(Model):
         ne_pcm3 = N.zeros(self.annuli.nshells)
 
         # repeatedly calculate density, then include self gravity
-        for i in xrange(iters):
+        for i in range(iters):
             # add (small) gas contribution to total acceleration
             tot_g_cmps2 = g_cmps2 + computeGasAccn(self.annuli, ne_pcm3)
 
             ne_pcm3 = []
             P_ergpcm3 = P0_ergpcm3
-            for i in xrange(self.annuli.nshells-1, -1, -1):
+            for i in six.range(self.annuli.nshells-1, -1, -1):
                 ne = (P_ergpcm3 / P_keV_to_erg / Ke_keVcm2[i])**(3./5.)
                 P_ergpcm3 += self.annuli.widths_cm[i] * tot_g_cmps2[i] * ne * (mu_e * mu_g)
                 ne_pcm3.insert(0, ne)

@@ -1,4 +1,27 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Contains classes:
+
+Annuli: geometry of annuli and cosmology.
+Band: information on a surface brightness profile.
+Data: set of Band objects.
+"""
 
 from __future__ import division, print_function
 import numpy as N
@@ -12,6 +35,11 @@ class Annuli:
     """Store information about the annuli."""
 
     def __init__(self, edges_arcmin, cosmology):
+        """
+        edges_arcmin: numpy array of edges of annuli in arcmin
+        cosmology: Cosmology object
+        """
+
         self.update(edges_arcmin, cosmology)
 
     def __getstate__(self):
@@ -101,6 +129,21 @@ class Band:
     def __init__(
         self, emin_keV, emax_keV, cts, rmf, arf, exposures,
         backrates=None, areascales=None, psfmatrix=None):
+        """
+        emin_keV: minimum energy of band in keV
+        emax_keV: maximum energy of band in keV
+        cts: numpy array of counts in each annulus
+        rmf: response matrix filename
+        arf: ancillary response matrix filename
+        exposures: numpy array of exposures in each annulus
+
+        optionally:
+        backrates: numpy array of rates of cts/s/arcmin^2 in each annulus
+        areascales: numpy array of scaling factors to convert from geometric
+          area in annulus to real area (including pixels)
+        psfmatrix: matrix to convolve to account for PSF, usually calculated
+          using functions in psfconvolve submodule
+        """
 
         self.emin_keV = emin_keV
         self.emax_keV = emax_keV
@@ -163,5 +206,10 @@ class Data:
     """Dataset class."""
 
     def __init__(self, bands, annuli):
+        """
+        bands: list of Band objects
+        annuli: Annuli object
+        """
+        
         self.bands = bands
         self.annuli = annuli

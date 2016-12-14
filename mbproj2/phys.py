@@ -1,8 +1,29 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Compute physical quantities from Model and parameters."""
+
 from __future__ import division, print_function
 from math import pi
 from collections import defaultdict
 import os
 
+import six
 import numpy as N
 import h5py
 
@@ -96,7 +117,7 @@ def physFromProfs(model, pars):
             [0], v['H_ergpg'][1:]-v['H_ergpg'][:-1]))
 
     Mdotcuml_gps = 0.
-    for i in xrange(nshells):
+    for i in six.range(nshells):
         # total energy going into mdot in this shell, subtracting contribution
         # of matter which flows inwards
         E_tot_ergps = (
@@ -172,11 +193,22 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=Fa
 
     return out, r_arcmin, r_kpc
 
-def savePhysChain(infilename, outfilename, model, pars, burn=0, thin=10):
-    """Write output physical chain."""
+def savePhysChain(
+        infilename, outfilename, model, pars,
+        burn=0, thin=10, randsample=False):
+    """Convert parameter chain to physical chain.
+
+    infilename: input HDF5 chain filename
+    outfilename: output HDF5 chain filename
+    model: Model object
+    pars: parameters: list of Param objects used when generating the chain
+    burn: throw away initial N parameters
+    thin: throw away every N parameters
+    randsample: sample values randomly from the chain when thinning
+    """
 
     data, r_arcmin, r_kpc = computePhysChains(
-        infilename, model, pars, burn=burn, thin=thin)
+        infilename, model, pars, burn=burn, thin=thin, randsample=randsample)
 
     print('Writing', outfilename)
     with h5py.File(outfilename, 'w') as f:
@@ -189,13 +221,15 @@ def savePhysChain(infilename, outfilename, model, pars, burn=0, thin=10):
                 d = d.astype(N.float32)
             f.create_dataset(v, data=d, compression=True, shuffle=True)
 
-def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269,
-                    randsample=False):
-    """Replay chain, compute physical quantity profiles.
+def replayChainPhys(
+        chainfilename, model, pars, burn=0, thin=10, confint=68.269,
+        randsample=False):
+    """Replay chain, computing median physical quantity profiles.
 
     confint: confidence interval
     burn: skip initial N items in chain
     thin: skip every N iterations in chain
+    randsample: randomly sample chain when thinning
 
     Returns medians and confidence interval percentiles (1 sigma by
     default)
@@ -224,7 +258,9 @@ def replayChainPhys(chainfilename, model, pars, burn=0, thin=10, confint=68.269,
     return outprofs
 
 def savePhysProfilesHDF5(outfilename, profiles):
-    """Save output profile to hdf5."""
+    """Given median profiles from replayChainPhys, save output profiles to
+    hdf5.
+    """
     try:
         os.unlink(outfilename)
     except OSError:
@@ -236,7 +272,9 @@ def savePhysProfilesHDF5(outfilename, profiles):
             f[name].attrs['vsz_twod_as_oned'] = 1
 
 def savePhysProfilesText(outfilename, profiles):
-    """Save output profile as text."""
+    """Given median profiles from replayChainPhys, save output profiles to
+    text.
+    """
     try:
         os.unlink(outfilename)
     except OSError:

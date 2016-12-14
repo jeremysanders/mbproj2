@@ -1,5 +1,25 @@
-# Components which make up a profile. Each component has a set of
-# parameters (of type Param).
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Components which make up a profile. Each component has a set of
+parameters (of type Param).
+
+"""
 
 from __future__ import division, print_function
 import math
@@ -14,7 +34,10 @@ class Cmpt:
     """Parametrise a profile."""
 
     def __init__(self, name, annuli):
-        """annuli is an Annuli object."""
+        """
+        name is prepended to each model parameter name
+        annuli is an Annuli object.
+        """
         self.name = name
         self.annuli = annuli
 
@@ -35,7 +58,14 @@ class CmptFlat(Cmpt):
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99, log=False):
-
+        """
+        name: name (used as parameter name)
+        annuli: Annuli object
+        defval: default value
+        minval: minimum value
+        maxval: maximum value
+        log: use 10**value to convert to physical quantity
+        """
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
         self.minval = minval
@@ -54,11 +84,21 @@ class CmptFlat(Cmpt):
         return N.full(self.annuli.nshells, float(v))
 
 class CmptBinned(Cmpt):
-    """A profile made of bins."""
+    """A profile made of bins with a parameter for every N bin."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         binning=1, interpolate=False, log=False):
+        """
+        name: name (used as start of parameter names)
+        annuli: Annuli object
+        defval: default value
+        minval: minimum value
+        maxval: maximum value
+        binning: factor to bin annuli (how many bins per parameter)
+        interpolate: interpolate values in intermediate bins
+        log: use 10**values to convert to physical quantity
+        """
 
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
@@ -71,7 +111,7 @@ class CmptBinned(Cmpt):
         # rounded up division
         self.npars = -(-annuli.nshells // binning)
         # list of all the parameter names for the annuli
-        self.parnames = ['%s_%03i' % (self.name, i) for i in xrange(self.npars)]
+        self.parnames = ['%s_%03i' % (self.name, i) for i in range(self.npars)]
 
     def defPars(self):
         return {
@@ -98,11 +138,24 @@ class CmptBinned(Cmpt):
 
 class CmptBinnedJumpPrior(CmptBinned):
     """A binned component using a prior that the values shouldn't jump
-    by more than the factor given."""
+    by more than the factor given.
+    """
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         binning=1, interpolate=False, log=False, priorjump=0.):
+        """
+        name: name (used as start of parameter names)
+        annuli: Annuli object
+        defval: default value
+        minval: minimum value
+        maxval: maximum value
+        binning: factor to bin annuli (how many bins per parameter)
+        interpolate: interpolate values in intermediate bins
+        log: use 10**values to convert to physical quantity
+        priorjump: fractional difference allowed to jump between bins,
+          implemented as a prior
+        """
 
         CmptBinned.__init__(
             self, name, annuli, defval=defval, minval=minval,
@@ -130,11 +183,21 @@ class CmptBinnedJumpPrior(CmptBinned):
         return 100*priorval
 
 class CmptMoveRadBase(Cmpt):
-    """Base class for moving bins."""
+    """Base class for components with bins which can move."""
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         nradbins=5, log=False):
+        """
+        name: name (used as start of parameter names)
+        annuli: Annuli object
+        defval: default value
+        minval: minimum value
+        maxval: maximum value
+        nradbins: number of control points ("bins") to use
+        interpolate: interpolate values in intermediate bins
+        log: use 10**values to convert to physical quantity
+        """
 
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
@@ -144,8 +207,8 @@ class CmptMoveRadBase(Cmpt):
         self.nradbins = nradbins
 
         # list of all the parameter names for the annuli
-        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
-        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in range(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in range(nradbins)]
 
     def defPars(self):
         valspars = {
@@ -175,6 +238,20 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
             nradbins=5, log=False, intbeyond=False):
+
+        """
+        name: name (used as start of parameter names)
+        annuli: Annuli object
+        defval: default value
+        minval: minimum value
+        maxval: maximum value
+        nradbins: number of control points ("bins") to use
+        interpolate: interpolate values in intermediate bins
+        log: use 10**values to convert to physical quantity
+        intbeyond: powerlaw interpolate inside and outside radii
+           (assumes constant values if False)
+        """
+
         CmptMoveRadBase.__init__(
             self, name, annuli, defval=defval, minval=minval, maxval=maxval,
             nradbins=nradbins, log=log)
@@ -229,7 +306,11 @@ class CmptBinnedMoveRad(CmptMoveRadBase):
         return prof
 
 class CmptBinWidthIncr(Cmpt):
-    """Component where bins have increasing widths."""
+    """Component where bins have increasing widths.
+    Not sure this is very useful.
+
+    Adds _dw_* parameters which are delta-widths
+    """
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
@@ -243,8 +324,8 @@ class CmptBinWidthIncr(Cmpt):
         self.nradbins = nradbins
 
         # list of all the parameter names for the annuli
-        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
-        self.radparnames = ['%s_dw_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in range(nradbins)]
+        self.radparnames = ['%s_dw_%03i' % (self.name, i) for i in range(nradbins)]
 
     def defPars(self):
         valspars = {
@@ -302,7 +383,7 @@ class CmptIncr(Cmpt):
 
         self.npars = annuli.nshells
         # list of all the parameter names for the annuli
-        self.parnames = ['%s_%03i' % (self.name, i) for i in xrange(self.npars)]
+        self.parnames = ['%s_%03i' % (self.name, i) for i in range(self.npars)]
 
     def defPars(self):
         return {
@@ -340,8 +421,8 @@ class CmptIncrMoveRad(Cmpt):
         self.nradbins = nradbins
 
         # list of all the parameter names for the annuli
-        self.valparnames = ['%s_%03i' % (self.name, i) for i in xrange(nradbins)]
-        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in xrange(nradbins)]
+        self.valparnames = ['%s_%03i' % (self.name, i) for i in range(nradbins)]
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in range(nradbins)]
 
     def defPars(self):
         valspars = {
@@ -409,32 +490,39 @@ def betaprof(rin_cm, rout_cm, n0, beta, rc):
     return nav
 
 class CmptBeta(Cmpt):
-    """Beta model."""
+    """Beta model.
+
+    Parameters are n0 (log base 10), beta and rc (log10 kpc)
+    """
 
     def defPars(self):
         return {
             '%s_n0' % self.name: Param(-2., minval=-7., maxval=2.),
             '%s_beta' % self.name: Param(2/3, minval=0., maxval=4.),
-            '%s_rc' % self.name: Param(50., minval=0., maxval=5000.),
+            '%s_rc' % self.name: Param(1.7, minval=-1, maxval=3.7),
             }
 
     def computeProf(self, pars):
         n0 = 10**pars['%s_n0' % self.name].val
         beta = pars['%s_beta' % self.name].val
-        rc = pars['%s_rc' % self.name].val
+        rc = 10**pars['%s_rc' % self.name].val
         return betaprof(self.annuli.rin_cm, self.annuli.rout_cm, n0, beta, rc)
 
 class CmptDoubleBeta(Cmpt):
-    """Double beta model."""
+    """Double beta model.
+
+    Parameters are n0_N (log base 10), beta_N and rc_N (log10 kpc), where N
+    is 1 and 2
+    """
 
     def defPars(self):
         return {
             '%s_n0_1' % self.name: Param(-2., minval=-7., maxval=2.),
             '%s_beta_1' % self.name: Param(2/3, minval=0., maxval=4.),
-            '%s_rc_1' % self.name: Param(20., minval=0., maxval=5000.),
+            '%s_rc_1' % self.name: Param(1.3, minval=-1,, maxval=3.7),
             '%s_n0_2' % self.name: Param(-3., minval=-7., maxval=2.),
             '%s_beta_2' % self.name: Param(0.5, minval=0., maxval=4.),
-            '%s_rc_2' % self.name: Param(100., minval=0., maxval=5000.),
+            '%s_rc_2' % self.name: Param(2, minval=-1., maxval=3.7),
             }
 
     def computeProf(self, pars):
@@ -443,17 +531,19 @@ class CmptDoubleBeta(Cmpt):
                 self.annuli.rin_cm, self.annuli.rout_cm,
                 10**pars['%s_n0_1' % self.name].val,
                 pars['%s_beta_1' % self.name].val,
-                pars['%s_rc_1' % self.name].val) +
+                10**pars['%s_rc_1' % self.name].val) +
             betaprof(
                 self.annuli.rin_cm, self.annuli.rout_cm,
                 10**pars['%s_n0_2' % self.name].val,
                 pars['%s_beta_2' % self.name].val,
-                pars['%s_rc_2' % self.name].val))
+                10**pars['%s_rc_2' % self.name].val))
 
 class CmptVikhDensity(Cmpt):
     """Density model from Vikhlinin+06, Eqn 3.
 
     Use double mode for 2nd component or single otherwise
+
+    Densities and radii are are log base 10
     """
 
     def __init__(self, name, annuli, mode='double'):

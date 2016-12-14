@@ -1,7 +1,29 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+# MA 02111-1307, USA
+
+"""Contains classes representing the model parameters and model fit.
+
+"""
+
 from __future__ import division, print_function
-import cPickle as pickle
 
 import six
+import six.moves.cPickle as pickle
 import scipy.optimize
 import numpy as N
 
@@ -19,6 +41,13 @@ class Param:
     """Model parameter."""
 
     def __init__(self, val, minval=-1e99, maxval=1e99, frozen=False):
+        """
+        val: value of parameter
+        minval: minimum allowed value
+        maxval: maximum allowed value
+        frozen: whether parameter is allowed to vary
+        """
+
         val = float(val)
         self.val = val
         self.defval = val
@@ -163,7 +192,7 @@ class Fit:
         thawedpars = self.thawedParVals()
         lastlike = self.getLikelihood(thawedpars)
         fpars = thawedpars
-        for i in xrange(maxiter):
+        for i in range(maxiter):
             fitpars = scipy.optimize.minimize(
                 minfunc, fpars, method='Nelder-Mead')
             fpars = fitpars.x
@@ -183,6 +212,9 @@ class Fit:
         return like
 
     def plotProfiles(self):
+        """Plot surface brightness profiles of model and data if Veusz is
+        installed.
+        """
         if veusz is None:
             raise RuntimeError('Veusz not found')
 
@@ -255,7 +287,7 @@ def genericPopulationMinimizer(
     newfun = N.zeros(newnum)
     newpar = N.zeros((newnum, poppar.shape[1]))
 
-    for gen in xrange(maxiter):
+    for gen in six.range(maxiter):
 
         # Sort into function order, keeping fraction. This could be a
         # partition, but this let's us keep track of what the best
