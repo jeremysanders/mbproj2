@@ -22,7 +22,7 @@ ModelNullPot: non-hydrostatic model, equivalent to spectral fitting
 ModelHydro: hydrostatic model, parameterized by density profile
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 import math
 
 from six.moves import range

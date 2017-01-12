@@ -21,7 +21,7 @@ given model parameters.
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 import subprocess
 import os

@@ -23,7 +23,7 @@ Band: information on a surface brightness profile.
 Data: set of Band objects.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 import numpy as N
 
 from .physconstants import kpc_cm

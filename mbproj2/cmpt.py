@@ -21,7 +21,7 @@ parameters (of type Param).
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 import math
 
 import numpy as N

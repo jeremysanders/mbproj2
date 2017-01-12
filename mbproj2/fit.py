@@ -20,7 +20,7 @@
 
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from six.moves import range, zip
 import six.moves.cPickle as pickle

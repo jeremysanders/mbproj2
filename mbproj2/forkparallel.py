@@ -21,7 +21,7 @@ one at a time (ForkParellel) or using a queue of input data
 (ForkQueue).
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 import os
 import socket

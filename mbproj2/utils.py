@@ -19,7 +19,7 @@
 """Collections of functions used by MBPROJ2.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from six.moves import range
 import numpy as N

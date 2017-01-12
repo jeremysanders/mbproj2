@@ -18,7 +18,7 @@
 
 """Compatibility driver for using mbproj1 yml files."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 import argparse
 import os
@@ -272,6 +272,8 @@ class YMLDriver:
             if name[:3] == 'ne_':
                 self.pars[name].frozen = False
 
+        # this gradually opening up of the density priors helps stop
+        # jumping to silly solutions
         thefit.refreshThawed()
         self.model.ne_cmpt.priorjump = 2.0
         thefit.doFitting()
@@ -281,6 +283,10 @@ class YMLDriver:
         self.model.ne_cmpt.priorjump = 4.0
         thefit.doFitting()
         self.model.ne_cmpt.priorjump = 10.0
+        thefit.doFitting()
+
+        # disable prior
+        self.model.ne_cmpt.priorjump = 0.
         thefit.doFitting()
 
         # thaw background (if set)
@@ -301,7 +307,7 @@ class YMLDriver:
 
         m.run(y['length'])
 
-        m.save(self.chainfilename)
+        m.save(self.chainfilename, thin=y['thin'])
 
     def medians(self, mode='hdf5', thin=10, burn=0, confint=68.269):
         """Convert chain into physical quantities.

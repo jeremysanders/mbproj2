@@ -18,7 +18,7 @@
 
 """CmptMass objects define dark matter potentials."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 import math
 import numpy as N
@@ -340,9 +340,15 @@ class CmptMassMulti(CmptMass):
         return retn
 
     def computeProf(self, pars):
-        tot_g, tot_pot = 0, 0
+        tot_g, tot_pot = 0., 0.
         for cmpt in self.cmpts:
             g, pot = cmpt.computeProf(pars)
             tot_g += g
             tot_pot += pot
         return tot_g, tot_pot
+
+    def prior(self, pars):
+        tot = 0.
+        for cmpt in self.cmpts:
+            tot += cmpt.prior(pars)
+        return tot

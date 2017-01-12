@@ -19,7 +19,7 @@
 """Routines for calculating distances from cosmology,
 Taken from Ned Wright's cosmology calculator."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 from math import sqrt, pi, sin, exp
 from six.moves import range
 

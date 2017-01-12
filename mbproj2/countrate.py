@@ -23,7 +23,7 @@ Results are taken from xspec, interpolating between results at fixed
 temperatures and metallicities
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 import os.path
 import h5py

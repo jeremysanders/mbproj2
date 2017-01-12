@@ -18,7 +18,7 @@
 
 """Compute physical quantities from Model and parameters."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 from math import pi
 from collections import defaultdict
 import os
