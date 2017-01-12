@@ -19,7 +19,6 @@
 """For doing MCMC given Fit object."""
 
 from __future__ import division, print_function, absolute_import
-import os
 
 import h5py
 import emcee
@@ -41,19 +40,21 @@ class MultiProcessPool:
         return self.queue.execute(args)
 
 class MCMC:
-    """For running MCMC."""
+    """For running Markov Chain Monte Carlo."""
 
-    def __init__(self, fit, walkers=100, processes=1):
-        """MCMC will run on Fit object with number of walkers given.
+    def __init__(self, fit,
+                 walkers=100, processes=1, initspread=0.01):
+        """To do MCMC on Fit object.
 
+        walkers: number of emcee walkers to use
         processes: number of simultaneous processes to compute likelihoods
+        initspread: random Gaussian width added to create initial parameters
         """
 
         self.fit = fit
         self.walkers = walkers
         self.numpars = len(fit.thawed)
-        self.initspread = 0.01
-        self.burninrestartfrac = 0.2
+        self.initspread = initspread
 
         # function for getting likelihood
         likefunc = lambda pars: fit.getLikelihood(pars)
@@ -79,6 +80,7 @@ class MCMC:
         thawedpars = N.array(self.fit.thawedParVals())
         assert N.all(N.isfinite(thawedpars))
 
+        # create enough parameters with finite likelihoods
         p0 = []
         while len(p0) < self.walkers:
             p = N.random.normal(0, self.initspread, size=self.numpars) + thawedpars
@@ -86,53 +88,55 @@ class MCMC:
                 p0.append(p)
         return p0
 
-    def innerburnin(self, length, autorefit):
-        """(internal) Burn in chain.
+    def burnIn(self, length, autorefit=True, minfrac=0.2, minimprove=0.01):
+        """Burn in, restarting if necessary.
 
-        Returns False if new minimum found
+        autorefit: refit position if new minimum is found during burn in
+        minfrac: minimum fraction of burn in to do if new minimum found
+        minimprove: minimum improvement in fit statistic to do a new fit
         """
 
-        bestfit = None
-        bestprob = initprob = self.fit.getLikelihood(self.fit.thawedParVals())
-        p0 = self.generateInitPars()
+        def innerburn():
+            """Returns False if new minimum found and autorefit is set"""
 
-        # record period
-        self.header['burn'] = length
+            bestfit = None
+            bestprob = initprob = self.fit.getLikelihood(self.fit.thawedParVals())
+            p0 = self.generateInitPars()
 
-        # iterate over burn-in period
-        for i, result in enumerate(self.sampler.sample(
-                p0, iterations=length, storechain=False)):
+            # record period
+            self.header['burn'] = length
 
-            if i % 10 == 0:
-                uprint(' Burn %i / %i (%.1f%%)' % (
-                        i, length, i*100/length))
+            # iterate over burn-in period
+            for i, result in enumerate(self.sampler.sample(
+                    p0, iterations=length, storechain=False)):
 
-            self.pos0, lnprob, rstate0 = result[:3]
+                if i % 10 == 0:
+                    uprint(' Burn %i / %i (%.1f%%)' % (
+                            i, length, i*100/length))
 
-            # new better fit
-            if lnprob.max()-bestprob > 0.01:
-                bestprob = lnprob.max()
-                maxidx = lnprob.argmax()
-                bestfit = self.pos0[maxidx]
+                self.pos0, lnprob, rstate0 = result[:3]
 
-            # abort if new minimum found
-            if ( autorefit and i>length*self.burninrestartfrac and
-                 bestfit is not None ):
+                # new better fit
+                if lnprob.max()-bestprob > minimprove:
+                    bestprob = lnprob.max()
+                    maxidx = lnprob.argmax()
+                    bestfit = self.pos0[maxidx]
 
-                uprint('  Restarting burn as new best fit has been found '
-                       ' (%g > %g)' % (bestprob, initprob) )
-                self.fit.updateThawed(bestfit)
-                self.sampler.reset()
-                return False
+                # abort if new minimum found
+                if ( autorefit and i>length*minfrac and
+                     bestfit is not None ):
 
-        self.sampler.reset()
-        return True
+                    uprint('  Restarting burn as new best fit has been found '
+                           ' (%g > %g)' % (bestprob, initprob) )
+                    self.fit.updateThawed(bestfit)
+                    self.sampler.reset()
+                    return False
 
-    def burnIn(self, length, autorefit=True):
-        """Burn in, restarting if necessary."""
+            self.sampler.reset()
+            return True
 
         uprint('Burning in')
-        while not self.innerburnin(length, autorefit):
+        while not innerburn():
             uprint('Restarting, as new mininimum found')
             self.fit.doFitting()
 
@@ -165,12 +169,7 @@ class MCMC:
         self.header['thin'] = thin
 
         uprint('Saving chain to', outfilename)
-        try:
-            os.unlink(outfilename)
-        except OSError:
-            pass
-
-        with h5py.File(outfilename) as f:
+        with h5py.File(outfilename, 'w') as f:
             # write header entries
             for h in sorted(self.header):
                 f.attrs[h] = self.header[h]
