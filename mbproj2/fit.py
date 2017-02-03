@@ -55,14 +55,20 @@ class Param:
         self.maxval = maxval
         self.frozen = frozen
 
+    def copy(self):
+        """Make a copy of the parameter (remember to reimplement if overriding)."""
+        p = Param(self._val, minval=self.minval, maxval=self.maxval, frozen=self.frozen)
+        p.defval = self.defval
+        return p
+
     def __repr__(self):
         return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, frozen=%s>' % (
             self.val, self.minval, self.maxval, self.frozen)
 
-    def copy(self):
-        p = Param(self.val, minval=self.minval, maxval=self.maxval, frozen=self.frozen)
-        p.defval = self.defval
-        return p
+    def prior(self):
+        if self.val < self.minval or self.val > self.maxval:
+            return -N.inf
+        return 0.
 
 class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
@@ -73,8 +79,9 @@ class Fit:
         model: Model object
         data: Data object
 
-        The parmaeters are for the model, but can include a parameter
-        called backscale, which controls the scaling of the background
+        The parameters are for the model, but a parameter called
+        backscale can be included, which controls the scaling of the
+        background
         """
 
         self.pars = pars
@@ -111,11 +118,10 @@ class Fit:
 
         return profs
 
-    def profLikelihood(self, predprofs):
+    def likeFromProfs(self, predprofs):
         """Given predicted profiles, calculate likelihood.
         (this doesn't include the prior)
         """
-
         likelihood = 0.
         for band, predprof in zip(self.data.bands, predprofs):
             likelihood += utils.cashLogLikelihood(band.cts, predprof)
@@ -129,34 +135,24 @@ class Fit:
         for val, name in zip(vals, self.thawed):
             self.pars[name].val = val
 
-    def penaltyTrimBounds(self):
-        """For each thawed parameter, compute a penalty index to subtract from
-        likelihood, and trim parameter to range."""
-
-        penalty = 0.
-        for name in self.thawed:
-            par = self.pars[name]
-            if par.val > par.maxval:
-                penalty += (par.val-par.maxval) / (par.maxval-par.minval)
-                par.val = par.maxval
-            elif par.val < par.minval:
-                penalty += (par.minval-par.val) / (par.maxval-par.minval)
-                par.val = par.minval
-        return penalty
-
     def getLikelihood(self, vals=None):
-        """Get likelihood for parameters given.  Parameters are trimmed to
-        their allowed range, applying a penalty
+        """Get likelihood for parameters given.
 
         Also include are the priors from the various components
         """
 
         if vals is not None:
             self.updateThawed(vals)
-        penalty = self.penaltyTrimBounds()
+
+        # prior on parameters
+        parprior = sum( (self.pars[p].prior() for p in self.pars) )
+        if not N.isfinite(parprior):
+            # don't want to evaluate profiles for invalid parameters
+            return -N.inf
+
         profs = self.calcProfiles()
-        like = self.profLikelihood(profs) - penalty*100
-        prior = self.model.prior(self.pars)
+        like = self.likeFromProfs(profs)
+        prior = self.model.prior(self.pars) + parprior
 
         totlike = float(like+prior)
 
