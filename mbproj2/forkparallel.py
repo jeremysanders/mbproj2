@@ -17,7 +17,7 @@
 # MA 02111-1307, USA
 
 """Module to run a forked parallel process for evalulating functions,
-one at a time (ForkParellel) or using a queue of input data
+one at a time (ForkParallel) or using a queue of input data
 (ForkQueue).
 """
 
@@ -38,20 +38,20 @@ exitcode = b'*[EX!T}*FORK'
 sizesize = struct.calcsize('L')
 
 def recvLen(sock, length):
-    """Receive exactly length bytes."""
+    """Receive exactly length bytes from socket."""
     retn = b''
     while len(retn) < length:
         retn += sock.recv(length-len(retn))
     return retn
 
 def sendItem(sock, item):
-    """Pickle and send item using size + pickled protocol."""
+    """Pickle and send item to socket using size + pickled protocol."""
     pickled = pickle.dumps(item, -1)
     size = struct.pack('L', len(pickled))
     sock.sendall(size + pickled)
 
 def recvItem(sock):
-    """Receive pickled item."""
+    """Receive pickled item from socket."""
     retn = sock.recv(64*1024)
 
     size = struct.unpack('L', retn[:sizesize])[0]

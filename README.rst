@@ -38,13 +38,48 @@ be computed for a large number of model and physical parameters.
 
 Requirements
 ------------
+
 MBPROJ2 requires the following:
 
 1. Python 2.7+ or 3.3+ or greater
-2. emcee http://dan.iel.fm/emcee/
-3. h5py  http://www.h5py.org/
-4. numpy http://www.numpy.org/
-5. scipy http://www.scipy.org/
-6. yaml  http://pyyaml.org/wiki/PyYAML
+2. emcee http://dan.iel.fm/emcee/ (Python module)
+3. h5py  http://www.h5py.org/ (Python module)
+4. numpy http://www.numpy.org/ (Python module)
+5. scipy http://www.scipy.org/ (Python module)
+6. yaml  http://pyyaml.org/wiki/PyYAML (Python module)
 7. xspec https://heasarc.gsfc.nasa.gov/xanadu/xspec/
+
+The Python module requirements can be installed using a Unix package
+manager, the ``pip`` Python tool or a Python distribution, as
+appropriate for your setup. Please see the link above for installing
+xspec. Before using MBPROJ2, make sure you have initialised HEADAS.
+
+Installation
+------------
+
+The standard way to install this module is to use the provided
+``setup.py`` script:
+
+::
+
+  $ python setup.py build
+  $ python setup.py install
+
+This will place the module in the default install location. Please see
+the Python distutils documentation if you want to choose different
+install locations.
+
+As the module is pure Python, if you want to install it manually you
+can copy the ``mbproj2`` directory somewhere and modify your
+``PYTHONPATH`` environment variable to include the directory where it
+is located.
+
+Using the module
+----------------
+
+The code can either be used as a Python module or driven using the
+program ``mbproj2_compat`` using an external configuration file in YML
+format. The second option is designed to be compatible with the format
+of the file used by the previous version MBPROJ. This is not properly
+documented but the interested user can examine the source code.
 
