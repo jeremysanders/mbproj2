@@ -123,18 +123,21 @@ class CmptBinned(Cmpt):
 
         # extract radial parameters for model
         pvals = N.array([pars[n].val for n in self.parnames])
-        if self.log:
-            pvals = 10**pvals
 
         if self.binning == 1:
-            return pvals
+            profile = pvals
         else:
             if self.interpolate:
                 annidx = N.arange(self.annuli.nshells) / self.binning
-                return N.interp(annidx, N.arange(self.npars), pvals)
+                profile = N.interp(annidx, N.arange(self.npars), pvals)
             else:
                 annidx = N.arange(self.annuli.nshells) // self.binning
-                return pvals[annidx]
+                profile = pvals[annidx]
+
+        if self.log:
+            profile = 10**profile
+
+        return profile
 
 class CmptBinnedJumpPrior(CmptBinned):
     """A binned component using a prior that the values shouldn't jump
