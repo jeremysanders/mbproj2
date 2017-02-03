@@ -93,12 +93,12 @@ def constructData(pars, annuli):
 def constructCmpt(subpars, annuli, name, defpars):
     """Convert input file component type to output component object."""
 
-    islog = name == 'ne'
+    islog = (name == 'ne') or (name == 'T')
     defval = subpars.get('val', None)
 
     minval, maxval = {
         'ne': (-7., 1.),
-        'T': (0.1, 50.),
+        'T': (N.log10(0.1), N.log10(50.)),
         'Z': (0., 10.),
         }[name]
 
@@ -199,7 +199,7 @@ def constructModel(pars, annuli):
     mpars = pars['model']['params']
     ne = constructCmpt(mpars['ne_logpcm3'], annuli, 'ne', defpars)
     Z = constructCmpt(mpars['Z_solar'], annuli, 'Z', defpars)
-    T = constructCmpt(mpars['T_keV'], annuli, 'T', defpars)
+    T = constructCmpt(mpars['T_logkeV'], annuli, 'T', defpars)
 
     # densities should not jump by more than a factor of 10
     # this resolves oscillations in the fitting
