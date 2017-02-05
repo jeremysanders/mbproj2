@@ -16,7 +16,8 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA
 
-"""Compute physical quantities from Model and parameters."""
+"""Compute physical quantities from Model and parameters, or the MCMC
+chains."""
 
 from __future__ import division, print_function, absolute_import
 from math import pi
@@ -53,7 +54,12 @@ def fracMassHalf(snum, annuli):
     return finside, foutside
 
 def physFromProfs(model, pars):
-    """Given model and parameters, calculate physical quantities."""
+    """Given model and parameters, calculate physical quantities.
+
+    :param Model model: model to use
+    :type pars: dict[str, Param]
+    :param pars: parameters to apply
+    """
 
     annuli = model.annuli
     ne_prof, T_prof, Z_prof = model.computeProfs(pars)
@@ -137,14 +143,15 @@ def physFromProfs(model, pars):
 def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=False):
     """Compute set of chains for each physical quantity.
 
-    burn: skip initial N items in chain
-    thin: skip every N iterations in chain
-    randsample: randomly sample from chain at thin interval
+    :param chainfilename: input chain filename
+    :param Model model: model to use
+    :type pars: dict[str, Param]
+    :param pars: parameters to apply
+    :param burn: skip initial N items in chain
+    :param thin: skip every N iterations in chain
+    :param randsample: randomly sample from chain at thin interval
 
-    Returns tuple:
-     dict of name with profiles,
-     radial bins in arcmin, with widths,
-     radial bins in kpc, with widths
+    :returns: tuple with dict of name with profiles, radial bins in arcmin, with widths, radial bins in kpc, with widths
     """
 
     uprint('Computing physical quantities from chain', chainfilename)
@@ -198,15 +205,16 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=Fa
 def savePhysChain(
         infilename, outfilename, model, pars,
         burn=0, thin=10, randsample=False):
-    """Convert parameter chain to physical chain.
+    """Convert parameter chain to physical chain, written to HDF5.
 
-    infilename: input HDF5 chain filename
-    outfilename: output HDF5 chain filename
-    model: Model object
-    pars: parameters: list of Param objects used when generating the chain
-    burn: throw away initial N parameters
-    thin: throw away every N parameters
-    randsample: sample values randomly from the chain when thinning
+    :param infilename: input HDF5 chain filename
+    :param outfilename: output HDF5 chain filename
+    :param Model model: input model
+    :type pars: dict[str, Param]
+    :param pars: parameters used in model
+    :param burn: throw away initial N parameters
+    :param thin: throw away every N parameters
+    :param randsample: sample values randomly from the chain when thinning
     """
 
     data, r_arcmin, r_kpc = computePhysChains(
@@ -228,13 +236,16 @@ def replayChainPhys(
         randsample=False):
     """Replay chain, computing median physical quantity profiles.
 
-    confint: confidence interval
-    burn: skip initial N items in chain
-    thin: skip every N iterations in chain
-    randsample: randomly sample chain when thinning
+    :param chainfilename: input physical chain filename
+    :param Model model: input model
+    :type pars: dict[str, Param]
+    :param pars: parameters used in model
+    :param confint: total confidence interval (percentage)
+    :param burn: skip initial N items in chain
+    :param thin: skip every N iterations in chain
+    :param randsample: randomly sample chain when thinning
 
-    Returns medians and confidence interval percentiles (1 sigma by
-    default)
+    :returns: medians and confidence interval percentiles
     """
 
     # get values to compute medians from

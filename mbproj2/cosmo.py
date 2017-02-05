@@ -16,8 +16,12 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA
 
-"""Routines for calculating distances from cosmology,
-Taken from Ned Wright's cosmology calculator."""
+"""Routines for calculating distances from cosmology.
+
+TODO: Replace with astopy's versions?
+"""
+
+# Taken from Ned Wright's cosmology calculator."""
 
 from __future__ import division, print_function, absolute_import
 from math import sqrt, pi, sin, exp
@@ -30,14 +34,19 @@ class Cosmology(object):
     """Cosmology calculation object."""
 
     def __init__(self, z, H0=70., q0=0.5, WM=0.3, WV=0.7):
-        """Set up cosmology object for cosmology of H0, q0, WM, WV and z."""
+        """
+        :param float H0: Hubble's constant (km/s/Mpc)
+        :param float q0: Deceleration parameter
+        :param float WM: Matter density
+        :param float WV: Vacuum density
+        """
         self.H0 = H0
         self.WM = WM
         self.WV = WV
         self.z = z
         self._lastparams = ()
 
-    def calculate(self):
+    def _calculate(self):
         """Recalculate distances if necessary."""
         params = (self.H0, self.WM, self.WV, self.z)
         if self._lastparams == params:
@@ -142,17 +151,17 @@ class Cosmology(object):
     @property
     def D_A(self):
         """Get angular diameter distance in Mpc."""
-        self.calculate()
+        self._calculate()
         return self._calc_D_A
 
     @property
     def D_L(self):
         """Get luminosity distance in Mpc."""
-        self.calculate()
+        self._calculate()
         return self._calc_D_L
 
     @property
     def kpc_per_arcsec(self):
         """Get number of kpc per arcsec."""
-        self.calculate()
+        self._calculate()
         return self._calc_kpc_DA

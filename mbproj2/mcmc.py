@@ -28,7 +28,7 @@ from . import utils
 from .utils import uprint
 from . import forkparallel
 
-class MultiProcessPool:
+class _MultiProcessPool:
     """Internal object to use ForkQueue to evaluate multiple profiles
     simultaneously."""
 
@@ -44,11 +44,11 @@ class MCMC:
 
     def __init__(self, fit,
                  walkers=100, processes=1, initspread=0.01):
-        """To do MCMC on Fit object.
-
-        walkers: number of emcee walkers to use
-        processes: number of simultaneous processes to compute likelihoods
-        initspread: random Gaussian width added to create initial parameters
+        """
+        :param Fit fit: Fit object to use for mcmc
+        :param int walkers: number of emcee walkers to use
+        :param int processes: number of simultaneous processes to compute likelihoods
+        :param float initspread: random Gaussian width added to create initial parameters
         """
 
         self.fit = fit
@@ -61,7 +61,7 @@ class MCMC:
 
         # pool object for returning result for multiple processes
         pool = (
-            None if processes <= 1 else MultiProcessPool(likefunc, processes))
+            None if processes <= 1 else _MultiProcessPool(likefunc, processes))
 
         # for doing the mcmc sampling
         self.sampler = emcee.EnsembleSampler(
@@ -74,7 +74,7 @@ class MCMC:
             'burn': 0,
             }
 
-    def generateInitPars(self):
+    def _generateInitPars(self):
         """Generate initial set of parameters from fit."""
 
         thawedpars = N.array(self.fit.thawedParVals())
@@ -89,11 +89,11 @@ class MCMC:
         return p0
 
     def burnIn(self, length, autorefit=True, minfrac=0.2, minimprove=0.01):
-        """Burn in, restarting if necessary.
+        """Burn in, restarting fit and burn if necessary.
 
-        autorefit: refit position if new minimum is found during burn in
-        minfrac: minimum fraction of burn in to do if new minimum found
-        minimprove: minimum improvement in fit statistic to do a new fit
+        :param bool autorefit: refit position if new minimum is found during burn in
+        :param float minfrac: minimum fraction of burn in to do if new minimum found
+        :param float minimprove: minimum improvement in fit statistic to do a new fit
         """
 
         def innerburn():
@@ -101,7 +101,7 @@ class MCMC:
 
             bestfit = None
             bestprob = initprob = self.fit.getLikelihood(self.fit.thawedParVals())
-            p0 = self.generateInitPars()
+            p0 = self._generateInitPars()
 
             # record period
             self.header['burn'] = length
@@ -141,7 +141,10 @@ class MCMC:
             self.fit.doFitting()
 
     def run(self, length):
-        """Run main chain."""
+        """Run chain.
+
+        :param int length: length of chain
+        """
 
         uprint('Sampling')
         self.header['length'] = length
@@ -149,7 +152,7 @@ class MCMC:
         # initial parameters
         if self.pos0 is None:
             uprint(' Generating initial parameters')
-            p0 = self.generateInitPars()
+            p0 = self._generateInitPars()
         else:
             uprint(' Starting from end of burn-in position')
             p0 = self.pos0
@@ -164,7 +167,11 @@ class MCMC:
         uprint('Done')
 
     def save(self, outfilename, thin=1):
-        """Save chain to HDF5 file."""
+        """Save chain to HDF5 file.
+
+        :param str outfilename: output hdf5 filename
+        :param int thin: save every N samples from chain
+        """
 
         self.header['thin'] = thin
 

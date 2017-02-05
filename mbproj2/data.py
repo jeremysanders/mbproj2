@@ -16,11 +16,8 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA
 
-"""Contains classes:
-
-Annuli: geometry of annuli and cosmology.
-Band: information on a surface brightness profile.
-Data: set of Band objects.
+"""
+Contains classes to represent data to be fit.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -32,12 +29,14 @@ from .utils import uprint
 from . import countrate
 
 class Annuli:
-    """Store information about the annuli."""
+    """Geometric information about the annuli on the sky."""
 
     def __init__(self, edges_arcmin, cosmology):
         """
-        edges_arcmin: numpy array of edges of annuli in arcmin
-        cosmology: Cosmology object
+        :param edges_arcmin: edges of annuli in arcmin (if N annuli, should be N+1 edges)
+
+        :param Cosmology cosmology: Cosmology object
+
         """
 
         self.update(edges_arcmin, cosmology)
@@ -54,10 +53,13 @@ class Annuli:
 
     def update(self, edges_arcmin, cosmology):
         """Change the annuli.
-
         Useful for recalculating models with new grid.
+
+        :param edges_arcmin: edges of annuli in arcmin
+        :param Cosmology cosmology: Cosmology object
         """
 
+        edges_arcmin = N.array(edges_arcmin)
         self.edges_arcmin = edges_arcmin
         self.cosmology = cosmology
 
@@ -100,9 +102,14 @@ class Annuli:
         self.ctrate = countrate.CountRate(cosmology)
 
 def loadAnnuli(filename, cosmology, centrecol=0, hwcol=1):
-    """Load annuli from data file, if radius of centre (arcmin) is
-    given by centrecol and bin half-width is given by hwcol
-    column. cosmology is a Cosmology object."""
+    """Helper to load annuli from data file.
+
+    Data file is in text with whitespace-separated columns.
+
+    :param Cosmology cosmology: cosmology to use
+    :param int centrecol: index of column giving centre (arcmin) of annulus
+    :param int hwcol: index of column giving half-width (arcmin) of annulus
+    """
 
     uprint('Loading annuli from', filename)
     data = N.loadtxt(filename)
@@ -130,19 +137,17 @@ class Band:
         self, emin_keV, emax_keV, cts, rmf, arf, exposures,
         backrates=None, areascales=None, psfmatrix=None):
         """
-        emin_keV: minimum energy of band in keV
-        emax_keV: maximum energy of band in keV
-        cts: numpy array of counts in each annulus
-        rmf: response matrix filename
-        arf: ancillary response matrix filename
-        exposures: numpy array of exposures in each annulus
+        :param emin_keV: minimum energy of band in keV
+        :param emax_keV: maximum energy of band in keV
+        :param cts: numpy array of counts in each annulus
+        :param rmf: response matrix filename
+        :param arf: ancillary response matrix filename
+        :param exposures: numpy array of exposures in each annulus
 
         optionally:
-        backrates: numpy array of rates of cts/s/arcmin^2 in each annulus
-        areascales: numpy array of scaling factors to convert from geometric
-          area in annulus to real area (including pixels)
-        psfmatrix: matrix to convolve to account for PSF, usually calculated
-          using functions in psfconvolve submodule
+        :param backrates: numpy array of rates of cts/s/arcmin^2 in each annulus
+        :param areascales: numpy array of scaling factors to convert from geometric area in annulus to real area (including pixels)
+        :param psfmatrix: matrix to convolve to account for PSF, usually calculated using functions in psfconvolve submodule
         """
 
         self.emin_keV = emin_keV

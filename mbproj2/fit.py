@@ -42,10 +42,10 @@ class Param:
 
     def __init__(self, val, minval=-1e99, maxval=1e99, frozen=False):
         """
-        val: value of parameter
-        minval: minimum allowed value
-        maxval: maximum allowed value
-        frozen: whether parameter is allowed to vary
+        :param float val: value of parameter
+        :param float minval: minimum allowed value
+        :param float maxval: maximum allowed value
+        :param bool frozen: whether parameter is allowed to vary
         """
 
         val = float(val)
@@ -56,8 +56,10 @@ class Param:
         self.frozen = frozen
 
     def copy(self):
-        """Make a copy of the parameter (remember to reimplement if overriding)."""
-        p = Param(self._val, minval=self.minval, maxval=self.maxval, frozen=self.frozen)
+        """Return a copy (remember to reimplement if overriding)."""
+        p = Param(
+            self._val,
+            minval=self.minval, maxval=self.maxval, frozen=self.frozen)
         p.defval = self.defval
         return p
 
@@ -66,6 +68,7 @@ class Param:
             self.val, self.minval, self.maxval, self.frozen)
 
     def prior(self):
+        """Return log prior for parameter."""
         if self.val < self.minval or self.val > self.maxval:
             return -N.inf
         return 0.
@@ -75,11 +78,11 @@ class Fit:
 
     def __init__(self, pars, model, data):
         """
-        pars: dict of name->Param objects
-        model: Model object
-        data: Data object
+        :param dict[str,Param] pars: parameters for model
+        :param Model model: Model to fit
+        :param Data data: Data to fit
 
-        The parameters are for the model, but a parameter called
+        The parameters pars are for the model, but a parameter called
         backscale can be included, which controls the scaling of the
         background
         """
@@ -92,7 +95,7 @@ class Fit:
         self.bestlike = -1e99
 
     def refreshThawed(self):
-        """Call this if thawed changes."""
+        """Call this after making changes to which parameters are thawed."""
         self.thawed = [
             name for name, par in sorted(self.pars.items()) if not par.frozen]
 
@@ -119,8 +122,10 @@ class Fit:
         return profs
 
     def likeFromProfs(self, predprofs):
-        """Given predicted profiles, calculate likelihood.
-        (this doesn't include the prior)
+        """Given predicted profiles, calculate log likelihood
+        (excluding prior).
+
+        :param list[numpy.array] predprofs: input profiles
         """
         likelihood = 0.
         for band, predprof in zip(self.data.bands, predprofs):
@@ -128,10 +133,13 @@ class Fit:
         return likelihood
 
     def thawedParVals(self):
-        """Return values of thawed parameters."""
+        """Return list of numeric values of thawed parameters."""
         return [self.pars[name].val for name in self.thawed]
 
     def updateThawed(self, vals):
+        """Update values of parameter Param objects which are thawed.
+        :param list[float] vals: numerical values of parameters
+        """
         for val, name in zip(vals, self.thawed):
             self.pars[name].val = val
 
@@ -169,9 +177,13 @@ class Fit:
         return totlike
 
     def doFitting(self, silent=False, maxiter=10):
-        """Optimize parameters to increase likelihood.
+        """Optimize parameters to increase likelihood.  Uses scipy's
+        Nelder-Mead and Powell optimizers, repeating if a new minimum
+        is found.
 
-        Returns likelihood
+        :param bool silent: print output during fitting
+        :param int maxiter: maximum number of iterations
+        :returns: log likelihood
         """
 
         if not silent:
@@ -242,7 +254,7 @@ class Fit:
             self.veuszembed.SetData('model_%i' % i, prof)
 
     def save(self, filename):
-        """Save fit."""
+        """Save fit in Python pickle format."""
 
         # don't try to pickle veusz window
         embed = None

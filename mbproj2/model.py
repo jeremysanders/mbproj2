@@ -32,27 +32,42 @@ from .fit import Param
 from .physconstants import ne_nH, mu_g, mu_e, P_keV_to_erg, G_cgs
 
 class Model:
-    def __init__(self, annuli, NH_1022pcm2=None):
-        """Initialise Model.
+    """Base class for different models.
 
-        annuli is an Annuli object.
-        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+    The parameter to the models are provided by a dict mapping the
+    parameter name to a Param object.
+
+    """
+
+    def __init__(self, annuli, NH_1022pcm2=None):
+        """
+        :param Annuli annuli: annuli on sky
+        :param float NH_1022pcm2: absorbing column density in 10^22 cm^-2
         """
         self.annuli = annuli
         assert NH_1022pcm2 is not None
         self.NH_1022pcm2 = NH_1022pcm2
 
     def defPars(self):
-        """Return dict of parameters (Param objects)."""
+        """
+        :rtype: dict[str,Param]
+        :return: default dict of parameters (names to Param objects).
+        """
 
     def computeProfs(self, pars):
-        """Take the dict of parameter values and return
-        arrays of ne, T and Z.
+        """Compute profiles of physical parameters.
+
+        :type pars: dict[str, Param]
+        :param pars: parameter values
+        :returns: arrays of ne, T and Z
         """
 
     def computeMassProf(self, pars):
-        """Compute mass profile, given pars.
-        Returns: g, potential (both can be 0)
+        """Compute mass profile.
+
+        :type pars: dict[str, Param]
+        :param pars: input parameters
+        :returns: g and potential arrays (CGS; both can be 0)
         """
 
     def prior(self, pars):
@@ -70,11 +85,11 @@ class ModelNullPot(Model):
 
     def __init__(self, annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=None):
         """
-        annuli is an Annuli object.
-        ne_cmpt: Cmpt object for density
-        T_cmpt: Cmpt object for temperature
-        Z_cmpt: Cmpt object for metallicity
-        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        :param Annuli annuli: annuli to analyse
+        :param Cmpt ne_cmpt: density component
+        :param Cmpt T_cmpt: temperature component
+        :param Cmpt Z_cmpt: metallicity component
+        :param float NH_1022pcm2: absorbing column density in 10^22 cm^-2
         """
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.ne_cmpt = ne_cmpt
@@ -133,17 +148,16 @@ class ModelHydro(Model):
     equilibrium. The temperature is calculated from the density and
     pressure computed from the mass model.
 
-    Temperature is calculated assuming hydrostatic equilibrium.
-    Included parameter is the outer pressure Pout
+    The Pout_logergpcm3 parameter is the outer pressure in log10 erg/cm^3.
     """
 
     def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt, NH_1022pcm2=None):
         """
-        annuli is an Annuli object.
-        mass_cmpt: CmptMass object for dark matter mass
-        ne_cmpt: Cmpt object for density
-        Z_cmpt: Cmpt object for metallicity
-        NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        :param Annuli annuli: annuli to analyse
+        :param CmptMass mass_cmpt: dark matter mass component
+        :param Cmpt ne_cmpt: density component
+        :param Cmpt Z_cmpt: metallicity component
+        :param float NH_1022pcm2: absorbing column density in 10^22 cm^-2
         """
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
         self.mass_cmpt = mass_cmpt
@@ -151,7 +165,6 @@ class ModelHydro(Model):
         self.Z_cmpt = Z_cmpt
 
     def defPars(self):
-        """Return default model parameters dict."""
         pars = {'Pout_logergpcm3': Param(-15., minval=-20., maxval=-8.)}
         pars.update(self.mass_cmpt.defPars())
         pars.update(self.ne_cmpt.defPars())
@@ -161,7 +174,7 @@ class ModelHydro(Model):
     def computeProfs(self, pars):
         """Calculate profiles assuming hydrostatic equilibrium.
 
-        Returns ne_pcm3, T_keV, Z_solar
+        :returns: ne_pcm3, T_keV, Z_solar
         """
 
         # this is the outer pressure
@@ -224,22 +237,23 @@ class ModelHydroEntropy(Model):
     """This is a form of the model assuming hydrostatic equilibrium,
     but parameterising using the entropy (K), not density.
 
-    Temperature is calculated assuming hydrostatic equilibrium.
-    Included parameter is the outer pressure Pout.
+    As the gas mass can't be calculated directly, the routine iterates
+    a number of times to get the density, updating the potential each
+    time.
 
-    Note that this code hasn't been tested very much, so use with caution!
+    The Pout_logergpcm3 parameter is the outer pressure in log10 erg/cm^3.
+
     """
 
     def __init__(
         self, annuli, mass_cmpt, K_cmpt, Z_cmpt, NH_1022pcm2=None, self_gravity=True):
         """
-        annuli is an Annuli object.
-        mass_cmpt: CmptMass object for dark matter mass
-        K_cmpt: Cmpt object for entropy
-        Z_cmpt: Cmpt object for metallicity
-        NH_1022pcm2: absorbing column density in 10^22 cm^-2
-        self_gravity: include loop to iteratively calculate self-gravity
-          of baryonic mass
+        :param Annuli annuli: annuli to analyse
+        :param CmptMass mass_cmpt: dark matter mass component
+        :param Cmpt K_cmpt: density component
+        :param Cmpt Z_cmpt: metallicity component
+        :param float NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        :param float self_gravity: include loop to iteratively calculate self-gravity of baryonic mass
         """
 
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)

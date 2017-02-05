@@ -31,9 +31,17 @@ from .physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm, solar_mass_g
 class CmptMass(Cmpt):
     """Base mass component."""
     def __init__(self, name, annuli, suffix=''):
+        """
+        :param name: prefix for parameters
+        :param Annuli annuli: annuli to examine
+        :param suffix: suffix to add to name if set
+        """
         if suffix:
             name = '%s_%s' % (name, suffix)
         Cmpt.__init__(self, name, annuli)
+
+    def computeProf(self, pars):
+        """Compute g_cmps2 and potential_ergpg profiles."""
 
 class CmptMassNFW(CmptMass):
     """NFW profile.
@@ -41,15 +49,15 @@ class CmptMassNFW(CmptMass):
     http://nedwww.ipac.caltech.edu/level5/Sept04/Brainerd/Brainerd5.html
     and Lisa Voigt's thesis
 
-    Parameters:
-    nfw_logconc: log10 concentration
-    nfw_r200_logMpc: log10 r200 in Mpc
+    Model parameters are nfw_logconc (log10 concentration) and
+    nfw_r200_logMpc (log10 r200 in Mpc)
+
     """
 
     def __init__(self, annuli, suffix=None):
         """
-        annuli: Annuli object
-        suffix: suffix to append to name nfw in parameters
+        :param Annuli annuli: Annuli object
+        :param suffix: suffix to append to name nfw in parameters
         """
         CmptMass.__init__(self, 'nfw', annuli, suffix=suffix)
 
@@ -60,8 +68,6 @@ class CmptMassNFW(CmptMass):
             }
 
     def computeProf(self, pars):
-        """Compute g_cmps2 and potential_ergpg profiles."""
-
         c = 10**(pars['%s_logconc' % self.name].val)
         r200 = 10**(pars['%s_r200_logMpc' % self.name].val)
         radius_cm = self.annuli.massav_cm
@@ -109,16 +115,16 @@ class CmptMassGNFW(CmptMass):
     For details see Schmidt & Allen (2007)
     http://adsabs.harvard.edu/doi/10.1111/j.1365-2966.2007.11928.x
 
-    Parameters:
-    gnfw_logconc: log10 concentration
-    gnfw_r200_logMpc: log10 r200 in Mpc
-    gnfw_alpha: alpha parameter (1 is standard NFW)
+    Model parameters are gnfw_logconc (log10 concentration),
+    gnfw_r200_logMpc (log10 r200 in Mpc) and gnfw_alpha (alpha
+    parameter; 1 is standard NFW).
+
     """
 
     def __init__(self, annuli, suffix=None):
         """
-        annuli: Annuli object
-        suffix: suffix to append to name gnfw in parameters
+        :param Annuli annuli: Annuli object
+        :param suffix: suffix to append to name gnfw in parameters
         """
         CmptMass.__init__(self, 'gnfw', annuli, suffix=suffix)
 
@@ -130,8 +136,6 @@ class CmptMassGNFW(CmptMass):
             }
 
     def computeProf(self, pars):
-        """Compute g_cmps2 and potential_ergpg profiles."""
-
         # get parameter values
         c = 10**(pars['%s_logconc' % self.name].val)
         r200_Mpc = 10**(pars['%s_r200_logMpc' % self.name].val)
@@ -185,15 +189,15 @@ class CmptMassKing(CmptMass):
 
     We define rho in terms of r0 and sigma
 
-    Parameters:
-    king_sigma_logkmps: sigma in log10 km/s
-    king_rcore_logkpc: rcore in log10 kpc
+    Model parameters are king_sigma_logkmps (sigma in log10 km/s)
+    and king_rcore_logkpc (rcore in log10 kpc).
+
     """
 
     def __init__(self, annuli, suffix=None):
         """
-        annuli: Annuli object
-        suffix: suffix to append to name king in parameters
+        :param Annuli annuli: Annuli object
+        :param suffix: suffix to append to name king in parameters
         """
         CmptMass.__init__(self, 'king', annuli, suffix=suffix)
 
@@ -228,7 +232,12 @@ class CmptMassKing(CmptMass):
         return g, phi
 
 class CmptMassPoint(CmptMass):
-    """Point mass."""
+    """Point mass.
+
+    Model parameter is pt_M_logMsun, which is point mass in log solar
+    masses.
+
+    """
 
     def __init__(self, annuli, suffix=None):
         """
@@ -251,12 +260,17 @@ class CmptMassPoint(CmptMass):
         return g, phi
 
 class CmptMassArb(CmptMass):
-    """Parametrise mass density using interpolation."""
+    """Parametrise mass density using interpolation.
+
+    Model parameters are arb_rho_YYY (mass density in log10 g cm^-3)
+    and arb_r_YYY (radii in log10 kpc) for annuli YYY.
+
+    """
 
     def __init__(self, annuli, nradbins, suffix=None):
         """
-        annuli: Annuli object
-        suffix: suffix to append to name arb in parameters
+        :param Annuli annuli: annuli used
+        :param suffix: suffix to append to name arb in parameters
         """        
         CmptMass.__init__(self, 'arb', annuli, suffix=suffix)
         self.nradbins = nradbins
@@ -326,9 +340,9 @@ class CmptMassMulti(CmptMass):
 
     def __init__(self, name, annuli, cmpts, suffix=None):
         """
-        name: name of component
-        annuli: Annuli object
-        cmpts: list of CmptMass objects
+        :param name: name of component
+        :param Annuli annuli: annuli to use
+        :param list[CmptMass] cmpts: components to sum
         """
         CmptMass.__init__(self, name, annuli, suffix=suffix)
         self.cmpts = cmpts

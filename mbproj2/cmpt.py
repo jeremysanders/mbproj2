@@ -31,26 +31,38 @@ from .fit import Param
 from .physconstants import kpc_cm
 
 class Cmpt:
-    """Parametrise a profile."""
+    """Parametrize a profile."""
 
     def __init__(self, name, annuli):
         """
-        name is prepended to each model parameter name
-        annuli is an Annuli object.
+        :param name: prepended to each model parameter name
+        :param Annuli annuli: annuli to analyse with component
         """
         self.name = name
         self.annuli = annuli
 
     def defPars(self):
-        """Return default parameters (dict of Param)."""
+        """
+        :rtype: dict[str,Param]
+        :return: default dict of parameters (names to Param objects).
+        """
 
     def computeProf(self, pars):
-        """Return profile for annuli given."""
+        """Compute profile given model parameters.
+
+        :type pars: dict[str, Param]
+        :param pars: parameter values
+        :returns: output profile
+        """
         pass
 
     def prior(self, pars):
         """Given parameters, compute prior.
-        (returns log likelihood)"""
+
+        :type pars: dict[str, Param]
+        :param pars: parameter values
+        :returns: log prior
+        """
         return 0.
 
 class CmptFlat(Cmpt):
@@ -59,12 +71,12 @@ class CmptFlat(Cmpt):
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99, log=False):
         """
-        name: name (used as parameter name)
-        annuli: Annuli object
-        defval: default value
-        minval: minimum value
-        maxval: maximum value
-        log: use 10**value to convert to physical quantity
+        :param name: name (used as parameter name)
+        :param annuli: Annuli object
+        :param defval: default value
+        :param minval: minimum value
+        :param maxval: maximum value
+        :param log: use 10**value to convert to physical quantity
         """
         Cmpt.__init__(self, name, annuli)
         self.defval = defval
@@ -148,16 +160,15 @@ class CmptBinnedJumpPrior(CmptBinned):
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         binning=1, interpolate=False, log=False, priorjump=0.):
         """
-        name: name (used as start of parameter names)
-        annuli: Annuli object
-        defval: default value
-        minval: minimum value
-        maxval: maximum value
-        binning: factor to bin annuli (how many bins per parameter)
-        interpolate: interpolate values in intermediate bins
-        log: use 10**values to convert to physical quantity
-        priorjump: fractional difference allowed to jump between bins,
-          implemented as a prior
+        :param name: name (used as start of parameter names)
+        :param annuli: Annuli object
+        :param defval: default value
+        :param minval: minimum value
+        :param maxval: maximum value
+        :param binning: factor to bin annuli (how many bins per parameter)
+        :param interpolate: interpolate values in intermediate bins
+        :param log: use 10**values to convert to physical quantity
+        :param priorjump: fractional difference allowed to jump between bins, implemented as a prior
         """
 
         CmptBinned.__init__(
@@ -192,14 +203,18 @@ class CmptMoveRadBase(Cmpt):
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
         nradbins=5, log=False):
         """
-        name: name (used as start of parameter names)
-        annuli: Annuli object
-        defval: default value
-        minval: minimum value
-        maxval: maximum value
-        nradbins: number of control points ("bins") to use
-        interpolate: interpolate values in intermediate bins
-        log: use 10**values to convert to physical quantity
+
+        :param name: name (used as start of parameter names)
+        :param Annuli annuli: Annuli object
+        :param defval: default value
+        :param minval: minimum value
+        :param maxval: maximum value
+        :param nradbins: number of control points ("bins") to use
+        :param log: use 10**values to convert to physical quantity
+
+        Model parameters: 'XX_YYY' and 'XX_r_YYY' where YYY goes from
+        000...999, based on the number of radial bins.
+
         """
 
         Cmpt.__init__(self, name, annuli)
@@ -235,7 +250,7 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
     """A profile with control points, using interpolation to find the
     values in between.
 
-    The radii of the control points are parameters (*_r_999 in log kpc)
+    The radii of the control points are parameters (XX_r_999 in log kpc)
     """
 
     def __init__(
@@ -243,16 +258,15 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
             nradbins=5, log=False, intbeyond=False):
 
         """
-        name: name (used as start of parameter names)
-        annuli: Annuli object
-        defval: default value
-        minval: minimum value
-        maxval: maximum value
-        nradbins: number of control points ("bins") to use
-        interpolate: interpolate values in intermediate bins
-        log: use 10**values to convert to physical quantity
-        intbeyond: powerlaw interpolate inside and outside radii
-           (assumes constant values if False)
+        :param name: used as start of parameter names
+        :param Annuli annuli: Annuli object
+        :param defval: default value
+        :param minval: minimum value
+        :param maxval: maximum value
+        :param nradbins: number of control points ("bins") to use
+        :param interpolate: interpolate values in intermediate bins
+        :param log: use 10**values to convert to physical quantity
+        :param intbeyond: powerlaw interpolate inside and outside radii (assumes constant values if False)
         """
 
         CmptMoveRadBase.__init__(
@@ -405,10 +419,12 @@ class CmptIncrMoveRad(Cmpt):
     """A profile with control points, using interpolation to find the
     values in between.
 
-    The radii of the control points are parameters (*_r_999 in log kpc)
-    The y values are gradients in log (cm^-3 log kpc^-1)
+    The radii of the control points are model parameters XX_r_YYY (in
+    log kpc), where YYY is the index of the annulus 000...999.  The y
+    values (XX_YYY) are gradients in log (cm^-3 log kpc^-1).
 
-    This model forces the density profile to increase inwards
+    This model forces the density profile to increase inwards.
+
     """
 
     def __init__(
@@ -476,7 +492,10 @@ class CmptIncrMoveRad(Cmpt):
         return prof
 
 def betaprof(rin_cm, rout_cm, n0, beta, rc):
-    """Return beta function density profile."""
+    """Return beta function density profile
+
+    Calculates average density in each shell.
+    """
 
     # this is the average density in each shell
     # i.e.
@@ -495,7 +514,7 @@ def betaprof(rin_cm, rout_cm, n0, beta, rc):
 class CmptBeta(Cmpt):
     """Beta model.
 
-    Parameters are n0 (log base 10), beta and rc (log10 kpc)
+    Model parameters are XX_n0 (log base 10), XX_beta and XX_rc (log10 kpc)
     """
 
     def defPars(self):
@@ -514,8 +533,8 @@ class CmptBeta(Cmpt):
 class CmptDoubleBeta(Cmpt):
     """Double beta model.
 
-    Parameters are n0_N (log base 10), beta_N and rc_N (log10 kpc), where N
-    is 1 and 2
+    Model parameters are XX_n0_N (log base 10), XX_beta_N and XX_rc_N (log10
+    kpc), where N is 1 and 2
     """
 
     def defPars(self):
@@ -544,7 +563,7 @@ class CmptDoubleBeta(Cmpt):
 class CmptVikhDensity(Cmpt):
     """Density model from Vikhlinin+06, Eqn 3.
 
-    Use double mode for 2nd component or single otherwise
+    Use double mode for 2nd component or single otherwise.
 
     Densities and radii are are log base 10
     """

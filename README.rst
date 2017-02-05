@@ -48,11 +48,13 @@ MBPROJ2 requires the following:
 5. scipy http://www.scipy.org/ (Python module)
 6. yaml  http://pyyaml.org/wiki/PyYAML (Python module)
 7. xspec https://heasarc.gsfc.nasa.gov/xanadu/xspec/
+8. veusz http://home.gna.org/veusz/ (optional plotting)
 
 The Python module requirements can be installed using a Unix package
-manager, the ``pip`` Python tool or a Python distribution, as
-appropriate for your setup. Please see the link above for installing
-xspec. Before using MBPROJ2, make sure you have initialised HEADAS.
+manager, the ``pip`` Python tool or a Python distribution such as
+Anaconda, as appropriate for your setup. Please see the link above for
+installing xspec. Before using MBPROJ2, make sure you have initialised
+HEADAS.
 
 Installation
 ------------
@@ -81,5 +83,43 @@ The code can either be used as a Python module or driven using the
 program ``mbproj2_compat`` using an external configuration file in YML
 format. The second option is designed to be compatible with the format
 of the file used by the previous version MBPROJ. This is not properly
-documented but the interested user can examine the source code.
+documented, but the interested user can examine the source code.
+
+The best way to understand how to use the module is to look at the
+example source code provided with the distribution. The API
+documentation provided details the various classes which make up
+mbproj2.
+
+The usual procedure to analyse data involves the following:
+
+- Use the redshift of the object to make a Cosmology object
+
+- Make an Annuli object which describes the annuli geometry in the
+  count profiles
+
+- Load cluster count profiles into Band objects (either manually or
+  with loadBand).
+
+- Construct a Data object from the list of Band objects.
+
+- Make the density and metallicity model component profiles by using
+  one of the provided Cmpt model component objects (e.g. CmptFlat or
+  CmptProfile).
+
+- Make the mass model component (if assuming hydrostatic equilibrium)
+  from one of the CmptMass objects.
+
+- Use ModelHydro to make a model from the various components.
+
+- Get a list of default parameters and modify if necessary.
+
+- Construct a Fit object which takes the model, parameters and data.
+
+- Find the best fitting set of parameters.
+
+- Use a MCMC object to do the Markov Chain Monte Carlo and write the
+  chain to a HDF5 file.
+
+- Use replayChainPhys to construct chains of physical parameters and
+  savePhysProfilesHDF5 to write profiles of median values.
 
