@@ -65,13 +65,17 @@ class XSpecHelper:
     normfactor = 1e75 # multiply norm by this to get into sensible units in xspec
 
     def __init__(self):
-        self.xspecsub = subprocess.Popen(
-            ['xspec'],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            bufsize=1,
-            universal_newlines=True
-        )
+        try:
+            self.xspecsub = subprocess.Popen(
+                ['xspec'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                bufsize=1,
+                universal_newlines=True
+            )
+        except OSError:
+            raise RuntimeError('Failed to start xspec')
+
         self.throwAwayOutput()
         self.tempoutput = None
         _finishatexit.append(self)
