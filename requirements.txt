@@ -2,4 +2,4 @@ emcee
 h5py
 numpy
 scipy
-yaml
+PyYAML
