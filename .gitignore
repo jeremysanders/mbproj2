@@ -3,3 +3,5 @@
 *.hdf5
 MANIFEST
 docs/_build
+dist/
+build/
