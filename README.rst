@@ -13,6 +13,8 @@ galaxy clusters from hydrostatic Chandra X-ray profiles*,
 J.S. Sanders, A.C. Fabian, H.R. Russell and S.A. Walker, submitted to
 MNRAS
 
+More documentation can be found at http://mbproj2.readthedocs.io/
+
 Introduction
 ------------
 
