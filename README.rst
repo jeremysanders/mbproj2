@@ -13,6 +13,8 @@ galaxy clusters from hydrostatic Chandra X-ray profiles*,
 J.S. Sanders, A.C. Fabian, H.R. Russell and S.A. Walker, submitted to
 MNRAS
 
+More documentation can be found at http://mbproj2.readthedocs.io/
+
 Introduction
 ------------
 
@@ -42,13 +44,13 @@ Requirements
 MBPROJ2 requires the following:
 
 1. Python 2.7+ or 3.3+ or greater
-2. emcee http://dan.iel.fm/emcee/ (Python module)
-3. h5py  http://www.h5py.org/ (Python module)
-4. numpy http://www.numpy.org/ (Python module)
-5. scipy http://www.scipy.org/ (Python module)
-6. yaml  http://pyyaml.org/wiki/PyYAML (Python module)
-7. xspec https://heasarc.gsfc.nasa.gov/xanadu/xspec/
-8. veusz http://home.gna.org/veusz/ (optional plotting)
+2. emcee  http://dan.iel.fm/emcee/ (Python module)
+3. h5py   http://www.h5py.org/ (Python module)
+4. numpy  http://www.numpy.org/ (Python module)
+5. scipy  http://www.scipy.org/ (Python module)
+6. PyYAML http://pyyaml.org/wiki/PyYAML (Python module)
+7. xspec  https://heasarc.gsfc.nasa.gov/xanadu/xspec/
+8. veusz  http://home.gna.org/veusz/ (optional plotting)
 
 The Python module requirements can be installed using a Unix package
 manager, the ``pip`` Python tool or a Python distribution such as
