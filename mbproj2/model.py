@@ -165,7 +165,7 @@ class ModelHydro(Model):
         self.Z_cmpt = Z_cmpt
 
     def defPars(self):
-        pars = {'Pout_logergpcm3': Param(-15., minval=-20., maxval=-8.)}
+        pars = {'Pout_logergpcm3': Param(-14., minval=-16., maxval=-8.)}
         pars.update(self.mass_cmpt.defPars())
         pars.update(self.ne_cmpt.defPars())
         pars.update(self.Z_cmpt.defPars())
