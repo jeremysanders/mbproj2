@@ -37,6 +37,7 @@ from . import fit
 from . import helpers
 from . import phys
 from . import mcmc
+from . import param
 from .utils import uprint
 
 def readProfile(arg):
@@ -244,8 +245,8 @@ class YMLDriver:
             rng = bs.get('range', 0.)
             backfrozen = True if rng==0. else bs.get('fixed', False)
 
-            self.pars['backscale'] = fit.Param(
-                val, minval=val-rng, maxval=val+rng, frozen=backfrozen)
+            self.pars['backscale'] = param.ParamGaussian(
+                val, prior_mu=val, prior_sigma=rng)
 
     def run(self):
         """Run, producing chain."""

@@ -24,7 +24,7 @@ import math
 import numpy as N
 import scipy.special
 
-from .fit import Param
+from .param import Param
 from .cmpt import Cmpt
 from .physconstants import Mpc_km, G_cgs, Mpc_cm, km_cm, kpc_cm, solar_mass_g
 

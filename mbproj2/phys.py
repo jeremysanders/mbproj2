@@ -57,7 +57,7 @@ def physFromProfs(model, pars):
     """Given model and parameters, calculate physical quantities.
 
     :param Model model: model to use
-    :type pars: dict[str, Param]
+    :type pars: dict[str, ParamBase]
     :param pars: parameters to apply
     """
 
@@ -145,7 +145,7 @@ def computePhysChains(chainfilename, model, pars, burn=0, thin=10, randsample=Fa
 
     :param chainfilename: input chain filename
     :param Model model: model to use
-    :type pars: dict[str, Param]
+    :type pars: dict[str, ParamBase]
     :param pars: parameters to apply
     :param burn: skip initial N items in chain
     :param thin: skip every N iterations in chain
@@ -210,7 +210,7 @@ def savePhysChain(
     :param infilename: input HDF5 chain filename
     :param outfilename: output HDF5 chain filename
     :param Model model: input model
-    :type pars: dict[str, Param]
+    :type pars: dict[str, ParamBase]
     :param pars: parameters used in model
     :param burn: throw away initial N parameters
     :param thin: throw away every N parameters
@@ -238,7 +238,7 @@ def replayChainPhys(
 
     :param chainfilename: input physical chain filename
     :param Model model: input model
-    :type pars: dict[str, Param]
+    :type pars: dict[str, ParamBase]
     :param pars: parameters used in model
     :param confint: total confidence interval (percentage)
     :param burn: skip initial N items in chain

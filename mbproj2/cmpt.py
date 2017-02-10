@@ -17,7 +17,7 @@
 # MA 02111-1307, USA
 
 """Components which make up a profile. Each component has a set of
-parameters (of type Param).
+parameters (of type ParamXXX).
 
 """
 
@@ -27,7 +27,7 @@ import math
 import numpy as N
 from scipy.special import hyp2f1
 
-from .fit import Param
+from .param import Param
 from .physconstants import kpc_cm
 
 class Cmpt:

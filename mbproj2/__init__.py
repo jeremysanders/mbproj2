@@ -28,6 +28,7 @@ from .cmpt_mass import *
 from .fit import *
 from .mcmc import *
 from .helpers import *
+from .param import *
 from .phys import *
 from .psfconvolve import *
 from .yml_driver import ymlCmdLineParse

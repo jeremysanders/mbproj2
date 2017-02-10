@@ -28,7 +28,7 @@ import math
 from six.moves import range
 import numpy as N
 
-from .fit import Param
+from .param import Param
 from .physconstants import ne_nH, mu_g, mu_e, P_keV_to_erg, G_cgs
 
 class Model:

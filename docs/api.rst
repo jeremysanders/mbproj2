@@ -11,6 +11,11 @@ Models
 .. automodule:: mbproj2.model
    :members:
 
+Model parameters
+----------------
+
+.. automodule:: mbproj2.param
+   :members:
 
 Components
 ----------

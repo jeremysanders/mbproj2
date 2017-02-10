@@ -16,8 +16,7 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA
 
-"""Contains classes representing the model parameters and model fit.
-
+"""A fit to the model.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -37,48 +36,12 @@ except ImportError:
 
 debugfit = True
 
-class Param:
-    """Model parameter."""
-
-    def __init__(self, val, minval=-1e99, maxval=1e99, frozen=False):
-        """
-        :param float val: value of parameter
-        :param float minval: minimum allowed value
-        :param float maxval: maximum allowed value
-        :param bool frozen: whether parameter is allowed to vary
-        """
-
-        val = float(val)
-        self.val = val
-        self.defval = val
-        self.minval = minval
-        self.maxval = maxval
-        self.frozen = frozen
-
-    def copy(self):
-        """Return a copy (remember to reimplement if overriding)."""
-        p = Param(
-            self._val,
-            minval=self.minval, maxval=self.maxval, frozen=self.frozen)
-        p.defval = self.defval
-        return p
-
-    def __repr__(self):
-        return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, frozen=%s>' % (
-            self.val, self.minval, self.maxval, self.frozen)
-
-    def prior(self):
-        """Return log prior for parameter."""
-        if self.val < self.minval or self.val > self.maxval:
-            return -N.inf
-        return 0.
-
 class Fit:
     """Class to help fitting model, by keeping track of thawed parameters."""
 
     def __init__(self, pars, model, data):
         """
-        :param dict[str,Param] pars: parameters for model
+        :param dict[str,ParamBase] pars: parameters for model
         :param Model model: Model to fit
         :param Data data: Data to fit
 
@@ -137,7 +100,7 @@ class Fit:
         return [self.pars[name].val for name in self.thawed]
 
     def updateThawed(self, vals):
-        """Update values of parameter Param objects which are thawed.
+        """Update values of parameter ParamBase objects which are thawed.
         :param list[float] vals: numerical values of parameters
         """
         for val, name in zip(vals, self.thawed):
