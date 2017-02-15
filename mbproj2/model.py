@@ -16,10 +16,9 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA
 
-"""Define hydrostatic and non-hydrostatic models.
+"""Hydrostatic and non-hydrostatic models to calculate the density,
+temperature and metallicity profiles of a cluster.
 
-ModelNullPot: non-hydrostatic model, equivalent to spectral fitting
-ModelHydro: hydrostatic model, parameterized by density profile
 """
 
 from __future__ import division, print_function, absolute_import
@@ -63,11 +62,16 @@ class Model:
         """
 
     def computeMassProf(self, pars):
-        """Compute mass profile.
+        """Compute mass profile acceleration and potential.
+
+        These are used externally for calculating mass deposition
+        rates. If not appropriate (e.g. a non-hydrostatic model), 0
+        and be returned for both.
 
         :type pars: dict[str, Param]
         :param pars: input parameters
-        :returns: g and potential arrays (CGS; both can be 0)
+        :returns: g and potential arrays (CGS)
+
         """
 
     def prior(self, pars):
