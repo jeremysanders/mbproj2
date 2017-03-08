@@ -80,7 +80,7 @@ def physFromProfs(model, pars):
     v['vol_cm3'] = annuli.vols_cm3
     v['Mgas_Msun'] = v['ne_pcm3'] * v['vol_cm3'] * mu_e*mu_g/solar_mass_g
 
-    v['fluxbolshell_ergpcm2'] = annuli.ctrate.getBolometricFlux(
+    v['fluxbolshell_ergpcm2'] = annuli.ctrate.getFlux(
         v['T_keV'], v['Z_solar'], v['ne_pcm3'])
     v['L_ergpspcm3'] = (
         v['fluxbolshell_ergpcm2'] * 4 * pi *
