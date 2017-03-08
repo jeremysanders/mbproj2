@@ -1,11 +1,11 @@
-MBPROJ2
+MBProj2
 =======
 
 https://github.com/jeremysanders/mbproj2
 
 Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
 
-MBPROJ2 is released under the GNU Library General Public License
+MBProj2 is released under the GNU Library General Public License
 version 2 or greater. See the file COPYING for details.
 
 Described in *Evolution, core properties and masses of SPT-selected
@@ -18,19 +18,19 @@ More documentation can be found at http://mbproj2.readthedocs.io/
 Introduction
 ------------
 
-MBPROJ2 is a code which forward-models surface brightness profiles of
+MBProj2 is a code which forward-models surface brightness profiles of
 galaxy clusters. Using a single X-ray band the model would be
 sensitive to the density of the intracluster medium (ICM). By using
 multiple bands the code is able to model the temperature variation
 within the cluster. Given sufficient energy bands the metallicity of
 the ICM can also be fitted.
 
-MBPROJ2 can assume hydrostatic equilibrium using a mass model. From
+MBProj2 can assume hydrostatic equilibrium using a mass model. From
 this model (with an outer pressure parameter and the density profile)
 the pressure profile can be computed for the cluster. This allows the
 temperature to be computed on small spatial scales, which would
 otherwise not have enough data to compute the temperature
-independently. If no hydrostatic equilibrium is assumed then MBPROJ2
+independently. If no hydrostatic equilibrium is assumed then MBProj2
 can fit for the temperature of the ICM instead.
 
 The defined model is normally first fit to the surface brightness
@@ -41,7 +41,7 @@ be computed for a large number of model and physical parameters.
 Requirements
 ------------
 
-MBPROJ2 requires the following:
+MBProj2 requires the following:
 
 1. Python 2.7+ or 3.3+ or greater
 2. emcee  http://dan.iel.fm/emcee/ (Python module)
@@ -55,7 +55,7 @@ MBPROJ2 requires the following:
 The Python module requirements can be installed using a Unix package
 manager, the ``pip`` Python tool or a Python distribution such as
 Anaconda, as appropriate for your setup. Please see the link above for
-installing xspec. Before using MBPROJ2, make sure you have initialised
+installing xspec. Before using MBProj2, make sure you have initialised
 HEADAS.
 
 Installation
