@@ -50,7 +50,7 @@ MBProj2 requires the following:
 5. scipy  http://www.scipy.org/ (Python module)
 6. PyYAML http://pyyaml.org/wiki/PyYAML (Python module)
 7. xspec  https://heasarc.gsfc.nasa.gov/xanadu/xspec/
-8. veusz  http://home.gna.org/veusz/ (optional plotting)
+8. veusz  https://veusz.github.io/ (optional plotting)
 
 The Python module requirements can be installed using a Unix package
 manager, the ``pip`` Python tool or a Python distribution such as
