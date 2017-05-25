@@ -18,12 +18,12 @@ More documentation can be found at http://mbproj2.readthedocs.io/
 Introduction
 ------------
 
-MBProj2 is a code which forward-models surface brightness profiles of
-galaxy clusters. Using a single X-ray band the model would be
-sensitive to the density of the intracluster medium (ICM). By using
-multiple bands the code is able to model the temperature variation
-within the cluster. Given sufficient energy bands the metallicity of
-the ICM can also be fitted.
+MBProj2 (MultiBand Projector 2) is a code which forward-models surface
+brightness profiles of galaxy clusters. Using a single X-ray band the
+model would be sensitive to the density of the intracluster medium
+(ICM). By using multiple bands the code is able to model the
+temperature variation within the cluster. Given sufficient energy
+bands the metallicity of the ICM can also be fitted.
 
 MBProj2 can assume hydrostatic equilibrium using a mass model. From
 this model (with an outer pressure parameter and the density profile)

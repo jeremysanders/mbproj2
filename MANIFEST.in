@@ -1,2 +1,3 @@
 include COPYING README.rst requirements.txt
 recursive-include docs *.py *.rst Makefile make.bat _static _templates .gitignore
+recursive-include scripts *
