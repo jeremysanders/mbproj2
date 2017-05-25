@@ -8,10 +8,10 @@ Copyright (C) 2016 Jeremy Sanders <jeremy@jeremysanders.net>
 MBProj2 is released under the GNU Library General Public License
 version 2 or greater. See the file COPYING for details.
 
-Described in *Evolution, core properties and masses of SPT-selected
-galaxy clusters from hydrostatic Chandra X-ray profiles*,
-J.S. Sanders, A.C. Fabian, H.R. Russell and S.A. Walker, submitted to
-MNRAS
+Described in *Hydrostatic Chandra X-ray analysis of SPT-selected
+galaxy clusters - I.  Evolution of profiles and core properties*,
+J.S. Sanders, A.C. Fabian, H.R. Russell and S.A. Walker, submitted
+to MNRAS
 
 More documentation can be found at http://mbproj2.readthedocs.io/
 
