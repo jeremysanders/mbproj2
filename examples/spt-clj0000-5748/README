@@ -1,0 +1,33 @@
+This is an example fit for the cluster SPT-CLJ0000-5748, similar to
+that published in Sanders+17.
+
+Included is a hydrostatic fit with an NFW model, assuming the modified
+beta form for the density. This is in fit_modified_beta_hydro.py.
+
+There's also a non-hydrostatic version assuming a McDonald+14 form for
+the temperature profile. This is in fit_modified_beta_nonhydro.py.
+
+The input profiles are in 10 different energy bands. The ones with the
+long .rebinopttwo20.s5 suffix are the rebinned ones being used in the
+fits. You could use the unbinned profiles, but there may not be enough
+photons in the background profiles also fitted in each radial bin. A
+smooth model for the background would allow unbinned input profiles,
+at the expense of speed.
+
+The code uses 5 columns from the input foreground files: annulus
+centre (arcmin), annulus half-width (arcmin), number of counts, area
+of annulus (from pixels in arcmin^2), exposure time (here corrected
+for vignetting). The final column is the surface brightness, but this
+isn't used by the code.
+
+From the background files, the code only uses the surface brightness
+(cts/s/arcmin^2).
+
+A Guassian prior on the background scaling is assumed.
+
+The output files from the two programs are the MCMC chain (in HDF5
+format). This contains the parameter values. The second files are
+ASCII and HDF5 versions of the physical profiles with 1sigma errors.
+
+HDF5 files can be inspected with hdfview. The data can be read using
+h5py in Python. The profiles can be plotted directly using Veusz.
