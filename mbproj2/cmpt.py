@@ -302,6 +302,22 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
             prof = 10**prof
         return prof
 
+class CmptInterpolMoveRadIncr(CmptInterpolMoveRad):
+    """Radial profile which has to rise inwards."""
+
+    def prior(self, pars):
+        rvals = N.array([pars[n].val for n in self.radparnames])
+        vvals = N.array([pars[n].val for n in self.valparnames])
+
+        # radii might be in wrong order
+        sortidxs = N.argsort(rvals)
+        rvals = rvals[sortidxs]
+        vvals = vvals[sortidxs]
+
+        if N.any( vvals[1:] > vvals[:-1] ):
+            return -N.inf
+        return 0
+
 class CmptBinnedMoveRad(CmptMoveRadBase):
     """Binned data with movable radii."""
 
@@ -618,4 +634,52 @@ class CmptVikhDensity(Cmpt):
         return N.sqrt(retn_sqd)
 
     def computeProf(self, pars):
-        return self.vikhFunction(pars, self.annuli.midpt_cm / kpc_cm)
+        return self.vikhFunction(pars, self.annuli.midpt_kpc)
+
+    def prior(self, pars):
+        rc_1 = 10**pars['%s_logrc_1' % self.name].val
+        r_s = 10**pars['%s_logr_s' % self.name].val
+        if rc_1 > r_s:
+            return -N.inf
+        return 0
+
+class CmptMcDonaldTemperature(Cmpt):
+    """Temperature model from McDonald+14, equation 1
+
+    Radii are are log base 10
+    """
+
+    def defPars(self):
+        n = self.name
+        pars = {
+            '%s_logT0' % n: Param(0.5, minval=-1, maxval=1.7),
+            '%s_logTmin' % n: Param(0.5, minval=-1, maxval=1.7),
+            '%s_logrc' % n: Param(2.3, minval=-1., maxval=3.7),
+            '%s_logrt' % n: Param(2.7, minval=0, maxval=3.7),
+            '%s_acool' % n: Param(2., minval=0, maxval=4.),
+            '%s_a' % n: Param(0., minval=-4, maxval=4.),
+            '%s_b' % n: Param(1., minval=0.001, maxval=4.),
+            '%s_c' % n: Param(1., minval=0, maxval=4.),
+            }
+        return pars
+
+    def computeProf(self, pars):
+        n = self.name
+        T0 = 10**pars['%s_logT0' % n].val
+        Tmin = 10**pars['%s_logTmin' % n].val
+        rc = 10**pars['%s_logrc' % n].val
+        rt = 10**pars['%s_logrt' % n].val
+        acool = pars['%s_acool' % n].val
+        a = pars['%s_a' % n].val
+        b = pars['%s_b' % n].val
+        c = pars['%s_c' % n].val
+
+        x = self.annuli.midpt_kpc
+        T = (
+            T0
+            * ((x/rc)**acool + (Tmin/T0))
+            / (1 + (x/rc)**acool)
+            * (x/rt)**-a
+            / (1 + (x/rt)**b)**(c/b)
+            )
+        return T
