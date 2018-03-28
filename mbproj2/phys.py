@@ -31,7 +31,7 @@ import h5py
 
 from .physconstants import (
     kpc_cm, keV_erg, ne_nH, mu_g, mu_e, boltzmann_erg_K, keV_K, Mpc_cm,
-    yr_s, solar_mass_g, G_cgs, P_keV_to_erg)
+    yr_s, solar_mass_g, G_cgs, P_keV_to_erg, km_cm)
 from .utils import uprint
 from . import fit
 
@@ -78,7 +78,8 @@ def physFromProfs(model, pars):
     v['Pe_keVpcm3'] = ne_prof * T_prof
     v['Se_keVcm2'] = T_prof * ne_prof**(-2/3)
     v['vol_cm3'] = annuli.vols_cm3
-    v['Mgas_Msun'] = v['ne_pcm3'] * v['vol_cm3'] * mu_e*mu_g/solar_mass_g
+    Mgas_g = v['ne_pcm3'] * v['vol_cm3'] * mu_e*mu_g
+    v['Mgas_Msun'] = Mgas_g/solar_mass_g
 
     v['fluxbolshell_ergpcm2'] = annuli.ctrate.getFlux(
         v['T_keV'], v['Z_solar'], v['ne_pcm3'])
@@ -89,6 +90,10 @@ def physFromProfs(model, pars):
     v['H_ergpcm3'] = (5/2) * v['ne_pcm3'] * (
         1 + 1/ne_nH) * v['T_keV'] * keV_erg
     v['tcool_yr'] = v['H_ergpcm3'] / v['L_ergpspcm3'] / yr_s
+
+    # turbulent velocity assuming cooling counteracted by cooling
+    v['sigma_turb_kmps'] = (
+        2/3*annuli.massav_cm*v['Lshell_ergps']/Mgas_g)**(1/3) / km_cm
 
     # split quantities about shell midpoint, so result is independent
     # of binning
