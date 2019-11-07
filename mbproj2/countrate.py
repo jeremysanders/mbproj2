@@ -78,8 +78,8 @@ class CountRate:
 
         if not os.path.exists(rmf):
             raise RuntimeError('RMF %s does not exist' % rmf)
-        if not os.path.exists(arf):
-            raise RuntimeError('ARF %s does not exist' % arf)
+        #if not os.path.exists(arf):
+        #    raise RuntimeError('ARF %s does not exist' % arf)
 
         hdffile = 'countrate_cache.hdf5'
 

@@ -579,7 +579,10 @@ class CmptDoubleBeta(Cmpt):
 class CmptVikhDensity(Cmpt):
     """Density model from Vikhlinin+06, Eqn 3.
 
-    Use double mode for 2nd component or single otherwise.
+    Modes:
+    'double': all components
+    'single': only first component
+    'betacore': only first two terms of first component
 
     Densities and radii are are log base 10
     """
@@ -593,11 +596,16 @@ class CmptVikhDensity(Cmpt):
             '%s_n0_1' % self.name: Param(-3., minval=-7., maxval=2.),
             '%s_beta_1' % self.name: Param(2/3., minval=0., maxval=4.),
             '%s_logrc_1' % self.name: Param(2.3, minval=-1., maxval=3.7),
-            '%s_logr_s' % self.name: Param(2.7, minval=0, maxval=3.7),
             '%s_alpha' % self.name: Param(0., minval=-1, maxval=2.),
-            '%s_epsilon' % self.name: Param(3., minval=0., maxval=5.),
-            '%s_gamma' % self.name: Param(3., minval=0., maxval=10, frozen=True),
             }
+
+        if self.mode in ('single', 'double'):
+            pars.update({
+                '%s_epsilon' % self.name: Param(3., minval=0., maxval=5.),
+                '%s_gamma' % self.name: Param(3., minval=0., maxval=10, frozen=True),
+                '%s_logr_s' % self.name: Param(2.7, minval=0, maxval=3.7),
+                })
+
         if self.mode == 'double':
             pars.update({
                     '%s_n0_2' % self.name: Param(-1., minval=-7., maxval=2.),
@@ -610,20 +618,22 @@ class CmptVikhDensity(Cmpt):
         n0_1 = 10**pars['%s_n0_1' % self.name].val
         beta_1 = pars['%s_beta_1' % self.name].val
         rc_1 = 10**pars['%s_logrc_1' % self.name].val
-        r_s = 10**pars['%s_logr_s' % self.name].val
         alpha = pars['%s_alpha' % self.name].val
-        epsilon = pars['%s_epsilon' % self.name].val
-        gamma = pars['%s_gamma' % self.name].val
 
         r = radii_kpc
-
         retn_sqd = (
             n0_1**2 *
             (r/rc_1)**(-alpha) / (
-                (1+r**2/rc_1**2)**(3*beta_1-0.5*alpha) *
-                (1+(r/r_s)**gamma)**(epsilon/gamma)
-                )
+                (1+r**2/rc_1**2)**(3*beta_1-0.5*alpha))
             )
+
+        if self.mode in ('single', 'double'):
+            r_s = 10**pars['%s_logr_s' % self.name].val
+            epsilon = pars['%s_epsilon' % self.name].val
+            gamma = pars['%s_gamma' % self.name].val
+
+            retn_sqd /= (1+(r/r_s)**gamma)**(epsilon/gamma)
+
         if self.mode == 'double':
             n0_2 = 10**pars['%s_n0_2' % self.name].val
             rc_2 = 10**pars['%s_logrc_2' % self.name].val
@@ -638,7 +648,10 @@ class CmptVikhDensity(Cmpt):
 
     def prior(self, pars):
         rc_1 = 10**pars['%s_logrc_1' % self.name].val
-        r_s = 10**pars['%s_logr_s' % self.name].val
+        try:
+            r_s = 10**pars['%s_logr_s' % self.name].val
+        except KeyError:
+            return 0
         if rc_1 > r_s:
             return -N.inf
         return 0

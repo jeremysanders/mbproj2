@@ -108,13 +108,14 @@ class MCMC:
 
             # iterate over burn-in period
             for i, result in enumerate(self.sampler.sample(
-                    p0, iterations=length, storechain=False)):
+                    p0, iterations=length, store=False)):
 
                 if i % 10 == 0:
                     uprint(' Burn %i / %i (%.1f%%)' % (
                             i, length, i*100/length))
 
-                self.pos0, lnprob, rstate0 = result[:3]
+                self.pos0 = result.coords
+                lnprob = result.log_prob
 
                 # new better fit
                 if lnprob.max()-bestprob > minimprove:

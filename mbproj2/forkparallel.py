@@ -266,6 +266,7 @@ class ForkQueue(ForkBase):
 
         # calculate number sent to each sock (making sure that the
         # number of items is <= than the number of sockets
+        argslist = list(argslist)
         numargs = len(argslist)
 
         if numargs < len(self.socks):

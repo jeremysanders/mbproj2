@@ -9,7 +9,7 @@ NaN values are ignored, so use them for masking point sources
 from __future__ import print_function, division
 
 import argparse
-import pyfits
+from astropy.io import fits
 import numpy as N
 
 def makeProfile(img, xc, yc, rmax, binf):
@@ -100,7 +100,7 @@ def main():
     binf, rmax, xc, yc = args.bin, args.rmax, args.xc, args.yc
 
     print('Opening', args.inimage)
-    with pyfits.open(args.inimage) as f:
+    with fits.open(args.inimage) as f:
         exposure = f[0].header['EXPOSURE']
         pixsize_arcmin = abs(f[0].header['CDELT1'] * 60)
 
@@ -121,13 +121,13 @@ def main():
             yc *= args.oversample
 
     if args.mask:
-        with pyfits.open(args.mask) as f:
+        with fits.open(args.mask) as f:
             img = img.astype(N.float64)
             img = oversampleSimple(img, args.oversample)
             img[f[0].data==0] = N.nan
 
     if args.exposuremap:
-        with pyfits.open(args.exposuremap) as f:
+        with fits.open(args.exposuremap) as f:
             expmap = N.array(f[0].data)
 
         expmap = oversampleSimple(expmap, args.oversample, average=True)

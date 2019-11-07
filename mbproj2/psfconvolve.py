@@ -52,11 +52,15 @@ def makePSFImage(psf_edges, psf_val, pix_size):
     return psfimg
 
 def linearComputePSFMatrix(
-    psf_edges, psf_val, annuli, psfoversample=4, annoversample=16):
+    psf_edges, psf_val, shell_edges, psfoversample=4, annoversample=16):
     """A PSF matrix calculation which doesn't require convolution.
 
     Idea is to slide PSF radially along an axis and compute the
     contribution to other shells.
+
+    psf_edges: array of edges for PSF
+    psf_val: weighting for radial bin
+    shell_edges: array of edges for shells (e.g. annuli.edges_arcmin)
 
     psfoversample: pixel size of psf is smallest psf radial bin
     divided by this
@@ -72,8 +76,7 @@ def linearComputePSFMatrix(
     psfimg = makePSFImage(psf_edges, psf_val, pix_size)
     psfimg *= 1/psfimg.sum()
 
-    annuli_edges = annuli.edges_arcmin
-    annuli_edges_sqd = annuli_edges**2
+    shell_edges_sqd = shell_edges**2
 
     # coordinates of pixels
     psfy = N.fromfunction(
@@ -88,9 +91,9 @@ def linearComputePSFMatrix(
     psfx_f = psfx[nonzero]
 
     # output response matrix
-    matout = N.zeros( (len(annuli_edges)-1, len(annuli_edges)-1) )
+    matout = N.zeros( (len(shell_edges)-1, len(shell_edges)-1) )
 
-    for i, (e1, e2) in enumerate(six.zip(annuli_edges[:-1], annuli_edges[1:])):
+    for i, (e1, e2) in enumerate(six.zip(shell_edges[:-1], shell_edges[1:])):
         uprint(' shell', i)
 
         # split up shell and compute average midpoint radius
@@ -103,30 +106,29 @@ def linearComputePSFMatrix(
             psfrad_sqd = (psfx_f+subrad)**2 + psfy_f_sqd
 
             hist, edges = N.histogram(
-                psfrad_sqd, bins=annuli_edges_sqd, weights=psfimg_f)
+                psfrad_sqd, bins=shell_edges_sqd, weights=psfimg_f)
             matout[:, i] += hist*subscale
 
     return matout
 
-def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
+def convComputePSFMatrix(psf_edges, psf_val, shell_edges, oversample=4):
     """Slow form of PSF matrix calculation using image convolution.
 
     Creates an image and does a convolution.
     """
 
     uprint('Computing PSF matrix')
-    annuli_edges = annuli.edges_arcmin
     small_delta_psf = N.diff(psf_edges).min()
-    small_delta_annuli = N.diff(annuli_edges).min()
+    small_delta_annuli = N.diff(shell_edges).min()
     pix_size = min(small_delta_psf, small_delta_annuli) / oversample
 
     # image of psf
     psfimg = makePSFImage(psf_edges, psf_val, pix_size).astype(N.float32)
 
     # output response matrix
-    matout = N.zeros( (len(annuli_edges)-1, len(annuli_edges)-1) )
+    matout = N.zeros( (len(shell_edges)-1, len(shell_edges)-1) )
 
-    for i, (e1, e2) in enumerate(six.zip(annuli_edges[:-1], annuli_edges[1:])):
+    for i, (e1, e2) in enumerate(six.zip(shell_edges[:-1], shell_edges[1:])):
         uprint(' shell', i)
         # make an image of shell and convolve with psf
         imgsize = int(N.ceil((e2+psf_edges[-1])/pix_size))*2+1
@@ -143,18 +145,16 @@ def convComputePSFMatrix(psf_edges, psf_val, annuli, oversample=4):
         # normalise to 1
         conv *= (1./conv.sum())
 
-        hist, edges = N.histogram(radii, bins=annuli_edges, weights=conv)
+        hist, edges = N.histogram(radii, bins=shell_edges, weights=conv)
         matout[:, i] = hist
     uprint('Done')
 
     return matout
 
-def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
+def convImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges):
     """Compute a convolution PSF matrix using the image given."""
 
-    edges = annuli.edges_arcmin
-
-    imgsize = 2*(int(edges[-1]/pixsize_arcmin)+1+max(psfimg.shape)//2) + 1
+    imgsize = 2*(int(shell_edges[-1]/pixsize_arcmin)+1+max(psfimg.shape)//2) + 1
 
     radii = N.fromfunction(
         lambda y,x: N.sqrt(
@@ -164,10 +164,11 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
     psfimgnorm = psfimg * (1./psfimg.sum())
 
     # output response matrix
-    matout = N.zeros( (len(edges)-1, len(edges)-1) )
+    matout = N.zeros( (len(shell_edges)-1, len(shell_edges)-1) )
 
-    for i, (e1, e2) in enumerate(six.zip(edges[:-1], edges[1:])):
-        uprint(' shell', i)
+    for i, (e1, e2) in enumerate(zip(shell_edges[:-1], shell_edges[1:])):
+        if i % 20 == 0:
+            uprint(' shell', i)
 
         annimg = ((radii >= e1) & (radii < e2)).astype(N.float)
         annimg *= 1./annimg.sum()
@@ -178,19 +179,19 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, annuli):
 
         #fitsgz.writeImageSimple(conv, 'conv_%i.fits' % i)
  
-        hist, edges = N.histogram(radii, bins=edges, weights=conv)
+        hist, shell_edges = N.histogram(radii, bins=shell_edges, weights=conv)
         matout[:, i] = hist
     uprint('Done')
 
     return matout
 
-def cachedPSFMatrix(psf_edge, psf_val, annuli):
+def cachedPSFMatrix(psf_edge, psf_val, shell_edges):
     """Return PSF matrix, getting cached version if possible."""
 
     h = hashlib.md5()
     h.update(N.ascontiguousarray(psf_edge))
     h.update(N.ascontiguousarray(psf_val))
-    h.update(N.ascontiguousarray(annuli.edges_arcmin))
+    h.update(N.ascontiguousarray(shell_edges))
     key = h.hexdigest()
 
     cachefile = 'psf_cache.hdf5'
@@ -198,7 +199,7 @@ def cachedPSFMatrix(psf_edge, psf_val, annuli):
     with utils.WithLock(cachefile+'.lockdir') as lock:
         with h5py.File(cachefile) as cache:
             if key not in cache:
-                psf = linearComputePSFMatrix(psf_edge, psf_val, annuli)
+                psf = linearComputePSFMatrix(psf_edge, psf_val, shell_edges)
                 cache[key] = psf
             m = N.array(cache[key])
     return m

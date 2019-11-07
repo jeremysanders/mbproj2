@@ -111,6 +111,10 @@ def physFromProfs(model, pars):
     # and the gas fraction (<r)
     v['fgascuml'] = v['Mgascuml_Msun'] / v['Mtotcuml_Msun']
 
+    rho_gpcm3 = (3/4./N.pi)*v['Mtotcuml_Msun']*solar_mass_g / annuli.massav_cm**3
+    v['tff_yr'] = N.sqrt(3*N.pi/32/G_cgs/rho_gpcm3) / yr_s
+    v['tcool_tff'] = v['tcool_yr']/v['tff_yr']
+
     # Mdots
     density_gpcm3 = v['ne_pcm3'] * mu_e * mu_g
     v['H_ergpg'] = v['H_ergpcm3'] / density_gpcm3
