@@ -9,6 +9,7 @@ NaN values are ignored, so use them for masking point sources
 from __future__ import print_function, division
 
 import argparse
+import sys
 from astropy.io import fits
 import numpy as N
 
@@ -101,7 +102,11 @@ def main():
 
     print('Opening', args.inimage)
     with fits.open(args.inimage) as f:
-        exposure = f[0].header['EXPOSURE']
+        try:
+            exposure = f[0].header['EXPOSURE']
+        except KeyError:
+            print("Warning: not EXPOSURE. Assuming 1.", file=sys.stderr)
+            exposure = 1.0
         pixsize_arcmin = abs(f[0].header['CDELT1'] * 60)
 
         img = N.array(f[0].data)
@@ -170,7 +175,7 @@ def main():
 
         print( '# rcentre(amin) rhalfwidth(amin) counts area(amin2) exposure sb',
                file=fout )
-        for i in xrange(int(rmax/binf)):
+        for i in range(int(rmax/binf)):
             if areas[i] == 0 and incentre:
                 continue
             incentre = False
