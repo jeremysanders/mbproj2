@@ -91,6 +91,9 @@ def main():
                         help='maximum radius (pixels)')
     parser.add_argument('--exposuremap',
                         help='exposure map for scaling areas (optional)')
+    parser.add_argument('--exp-from-expmap',
+                        action='store_true',
+                        help='take exposure from exposure map (s)')
     parser.add_argument('--bin', type=float, default=1,
                         help='bin factor (pixels)')
     parser.add_argument('--oversample', type=int, default=1,
@@ -102,11 +105,8 @@ def main():
 
     print('Opening', args.inimage)
     with fits.open(args.inimage) as f:
-        try:
-            exposure = f[0].header['EXPOSURE']
-        except KeyError:
-            print("Warning: not EXPOSURE. Assuming 1.", file=sys.stderr)
-            exposure = 1.0
+
+        exposure = f[0].header.get('EXPOSURE')
         pixsize_arcmin = abs(f[0].header['CDELT1'] * 60)
 
         img = N.array(f[0].data)
@@ -125,13 +125,8 @@ def main():
             xc *= args.oversample
             yc *= args.oversample
 
-    if args.mask:
-        with fits.open(args.mask) as f:
-            img = img.astype(N.float64)
-            img = oversampleSimple(img, args.oversample)
-            img[f[0].data==0] = N.nan
-
     if args.exposuremap:
+        print('Reading exposure map', args.exposuremap)
         with fits.open(args.exposuremap) as f:
             expmap = N.array(f[0].data)
 
@@ -143,6 +138,24 @@ def main():
         img = N.where(N.isfinite(expmap), img, N.nan)
     else:
         expmap = None
+
+    # exposure from header
+    if args.exp_from_expmap:
+        assert expmap is not None
+        exposure = expmap[int(args.yc), int(args.xc)]
+        if not N.isfinite(exposure) or exposure <= 10:
+            print("WARNING: likely invalid exposure obtained from exposure image",
+                  file=sys.stderr)
+    else:
+        if exposure is None:
+            print("WARNING: no EXPOSURE keyword in image. Assuming 1.", file=sys.stderr)
+            exposure = 1.0
+
+    if args.mask:
+        with fits.open(args.mask) as f:
+            img = img.astype(N.float64)
+            img = oversampleSimple(img, args.oversample)
+            img[f[0].data==0] = N.nan
 
     ctsum, pixsum = makeProfile(img, xc, yc, rmax, binf)
     areas = pixsum * pixsize_arcmin**2
