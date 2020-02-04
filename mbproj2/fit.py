@@ -54,7 +54,7 @@ class Fit:
         self.model = model
         self.data = data
         self.refreshThawed()
-        self.veuszembed = None
+        self._veuszembed = []
         self.bestlike = -1e99
 
     def refreshThawed(self):
@@ -182,54 +182,114 @@ class Fit:
         self.updateThawed(fpars)
         return like
 
-    def plotProfiles(self):
+    def plotProfiles(self,
+                     logx=True,
+                     logy=False,
+                     showback=True,
+                     rates=False,
+                     title='mbproj2 profiles',
+                     mode='update',
+                     savefilename=None,
+                     exportfilename=None):
         """Plot surface brightness profiles of model and data if Veusz is
         installed.
+
+        :param logx: Use log x axis
+        :param logy: Use log y axis
+        :param showback: Whether to show background curves
+        :param rates: Show rates (cts/s/arcmin2) instead of cts/annulus
+        :param title: Veusz window title
+        :param mode: "hidden"=hidden window for export, "new"=new window, "update"=update last window
+        :param savefilename: Save Veusz document to file
+        :param exportfilename: Export Veusz document to graphics file
         """
         if veusz is None:
             raise RuntimeError('Veusz not found')
 
-        if self.veuszembed is None:
-            embed = self.veuszembed = veusz.Embedded()
-            grid = self.veuszembed.Root.Add('page').Add('grid', columns=1)
+        update = False
+        if mode == 'hidden':
+            embed = veusz.Embedded(hidden=True)
+        elif mode == 'new' or len(self._veuszembed)==0:
+            embed = veusz.Embedded(title)
+            self._veuszembed.append(embed)
+        elif mode == 'update':
+            embed = self._veuszembed[-1]
+            update = True
+        else:
+            raise ValueError("Invalid mode")
+
+        if not update:
+            root = embed.Root
+            root.colorTheme.val = 'default-latest'
+            page = root.Add('page')
+            page.height.val = '%gcm' % (len(self.data.bands)*5)
+            grid = page.Add('grid', columns=1)
             xaxis = grid.Add(
-                'axis', name='x', direction='horizontal', log=True,
+                'axis', name='x', direction='horizontal',
                 autoRange='+2%')
+            if logx:
+                axis.log.val = True
 
             for i in range(len(self.data.bands)):
                 graph = grid.Add('graph', name='graph%i' % i)
+                if logy:
+                    graph.y.log.val = True
+
                 xydata = graph.Add(
                     'xy', marker='none', name='data',
-                    xData='radius', yData='data_%i' %i)
+                    xData='radius', yData='data_%i' % i)
                 xymodel = graph.Add(
-                    'xy', marker='none', name='model', color='red',
-                    xData='radius', yData='model_%i' %i)
+                    'xy', marker='none', name='model',
+                    xData='radius', yData='model_%i' % i)
+                if showback:
+                    xyback = graph.Add(
+                        'xy', marker='none', name='back',
+                        xData='radius', yData='back_%i' % i)
 
             edges = self.data.annuli.edges_arcmin
-            self.veuszembed.SetData(
+            embed.SetData(
                 'radius', 0.5*(edges[1:]+edges[:-1]),
                 symerr=0.5*(edges[1:]-edges[:-1]))
             grid.Action('zeroMargins')
 
+        if 'backscale' in self.pars:
+            backscale = self.pars['backscale'].val
+        else:
+            backscale = 1.
+
         profs = self.calcProfiles()
         for i, (band, prof) in enumerate(zip(self.data.bands, profs)):
-            self.veuszembed.SetData('data_%i' % i, band.cts)
-            self.veuszembed.SetData('model_%i' % i, prof)
+            factor = (
+                1/(self.data.annuli.geomarea_arcmin2*band.areascales*band.exposures)
+                if rates else 1 )
+            embed.SetData('data_%i' % i, band.cts*factor)
+            embed.SetData('model_%i' % i, prof*factor)
+            embed.SetData(
+                'back_%i' % i, band.backrates*self.data.annuli.geomarea_arcmin2*
+                band.areascales*band.exposures*factor*backscale)
+
+        if savefilename:
+            embed.Save(savefilename)
+        if exportfilename:
+            embed.Export(exportfilename)
+
+        if mode == 'hidden':
+            embed.Close()
 
     def save(self, filename):
         """Save fit in Python pickle format."""
 
         # don't try to pickle veusz window
         embed = None
-        if self.veuszembed is not None:
-            embed = self.veuszembed
-            self.veuszembed = None
+        if self._veuszembed:
+            embed = self._veuszembed
+            self._veuszembed = None
 
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
-        if embed is not None:
-            self.veuszembed = embed
+        if embed:
+            self._veuszembed = embed
 
 def genericPopulationMinimizer(
     function, gennewparams, popnum=1000, keepfrac=0.8, maxiter=1000, sigmabreak=1e-3):
