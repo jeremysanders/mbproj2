@@ -151,8 +151,36 @@ def convComputePSFMatrix(psf_edges, psf_val, shell_edges, oversample=4):
 
     return matout
 
-def convImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges):
-    """Compute a convolution PSF matrix using the image given."""
+def convImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges, cache=True,
+                       cachefile='psf_cache.hdf5'):
+    """Compute a convolution PSF matrix using the image given (uncached version).
+
+    If cache is true, then
+    """
+
+    if not cache:
+        return _innerConvImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges)
+
+    # create unique key based on parameters
+    h = hashlib.md5()
+    h.update(N.ascontiguousarray(psfimg))
+    h.update(N.ascontiguousarray([pixsize_arcmin]))
+    h.update(N.ascontiguousarray(shell_edges))
+    key = h.hexdigest()
+
+    with utils.WithLock(cachefile+'.lockdir') as lock:
+        cachef = h5py.File(cachefile)
+        if key in cachef:
+            psfmat = N.array(cachef[key])
+        else:
+            psfmat = _innerConvImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges)
+            cachef[key] = psfmat
+        cachef.close()
+
+    return psfmat
+
+def _innerConvImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges):
+    """Compute a convolution PSF matrix using the image given (uncached version)."""
 
     imgsize = 2*(int(shell_edges[-1]/pixsize_arcmin)+1+max(psfimg.shape)//2) + 1
 
@@ -185,7 +213,7 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges):
 
     return matout
 
-def cachedPSFMatrix(psf_edge, psf_val, shell_edges):
+def cachedPSFMatrix(psf_edge, psf_val, shell_edges, cachefile='psf_cache.hdf5'):
     """Return PSF matrix, getting cached version if possible."""
 
     h = hashlib.md5()
@@ -193,8 +221,6 @@ def cachedPSFMatrix(psf_edge, psf_val, shell_edges):
     h.update(N.ascontiguousarray(psf_val))
     h.update(N.ascontiguousarray(shell_edges))
     key = h.hexdigest()
-
-    cachefile = 'psf_cache.hdf5'
 
     with utils.WithLock(cachefile+'.lockdir') as lock:
         with h5py.File(cachefile) as cache:
