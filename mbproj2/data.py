@@ -169,8 +169,15 @@ class Band:
 
         self.psfmatrix = psfmatrix
 
-    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
-        """Predict profile given cluster profiles."""
+    def calcProjProfileCmpts(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
+        """Return predicted cluster and background profiles (as tuples).
+
+        :param annuli: Annuli object
+        :param ne_prof: density in each shell
+        :param T_prof: temperature in each shell
+        :param NH_1022pcm2: absorbing column density
+        :para backscale: scaling factor for background
+        """
 
         rates = annuli.ctrate.getCountRate(
             self.rmf, self.arf, self.emin_keV, self.emax_keV,
@@ -181,12 +188,26 @@ class Band:
         if self.psfmatrix is not None:
             projrates = self.psfmatrix.dot(projrates)
 
-        projrates *= self.areascales
+        clustprof = projrates * self.areascales * self.exposures
+        backprof = (
+            self.backrates * backscale * annuli.geomarea_arcmin2 *
+            self.areascales * self.exposures )
 
-        projrates += self.backrates * backscale * annuli.geomarea_arcmin2 * self.areascales
-        projrates *= self.exposures
+        return clustprof, backprof
 
-        return projrates
+    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
+        """Predict profile given cluster profiles.
+
+        :param annuli: Annuli object
+        :param ne_prof: density in each shell
+        :param T_prof: temperature in each shell
+        :param NH_1022pcm2: absorbing column density
+        :para backscale: scaling factor for background
+        """
+
+        clustprof, backprof = self.calcProjProfileCmpts(
+            annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=backscale)
+        return clustprof+backprof
 
 def loadBand(
     filename, emin_keV, emax_keV, rmf, arf,

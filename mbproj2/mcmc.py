@@ -20,11 +20,14 @@
 
 from __future__ import division, print_function, absolute_import
 
+import os
+import six
 import h5py
 import emcee
 import numpy as N
 
 from . import utils
+from . import fit
 from .utils import uprint
 from . import forkparallel
 
@@ -201,3 +204,128 @@ class MCMC:
             f['lastpos'] = self.sampler.chain[:, -1, :].astype(N.float32)
 
         uprint('Done')
+
+def replayChainSB(
+        chainfilename, data, model, pars, burn=0, thin=10,
+        confint=68.269, randsample=False):
+
+    """Replay chain, computing surface brightness files
+
+    :param chainfilename: input physical chain filename
+    :param Data data: input data
+    :param Model model: input model
+    :type pars: dict[str, ParamBase]
+    :param pars: parameters used in model
+    :param confint: total confidence interval (percentage)
+    :param burn: skip initial N items in chain
+    :param thin: skip every N iterations in chain
+    :param randsample: randomly sample chain when thinning
+
+    :returns: medians and confidence interval percentiles
+    """
+
+    uprint('Computing surface brightness profiles from chain', chainfilename)
+    with h5py.File(chainfilename, 'r') as f:
+        fakefit = fit.Fit(pars, model, None)
+        filethawed = [x.decode('utf-8') for x in f['thawed_params']]
+        if fakefit.thawed != filethawed:
+            raise RuntimeError('Parameters do not match those in chain')
+
+        if randsample:
+            #print('Geting random sample')
+            chain = f['chain'][:, burn:, :]
+            chain = chain.reshape(-1, chain.shape[2])
+            rows = N.arange(chain.shape[0])
+            N.random.shuffle(rows)
+            chain = chain[rows[:len(rows)//thin], :]
+        else:
+            chain = f['chain'][:, burn::thin, :]
+            chain = chain.reshape(-1, chain.shape[2])
+
+    # iterate over input
+    length = len(chain)
+    annuli = data.annuli
+
+    # keep copy of profiles
+    totprofs = [[] for i in range(len(data.bands))]
+    clustprofs = [[] for i in range(len(data.bands))]
+    backprofs = [[] for i in range(len(data.bands))]
+
+    for i, parvals in enumerate(chain):
+        if i % 1000 == 0:
+            uprint(' Step %i / %i (%.1f%%)' % (i, length, i*100/length))
+
+        fakefit.updateThawed(parvals)
+
+        # optional background scaling parameter
+        if 'backscale' in fakefit.pars:
+            backscale = fakefit.pars['backscale'].val
+        else:
+            backscale = 1.
+
+        ne_prof, T_prof, Z_prof = model.computeProfs(fakefit.pars)
+        for i, band in enumerate(data.bands):
+            clustprof, backprof = band.calcProjProfileCmpts(
+                annuli, ne_prof, T_prof, Z_prof,
+                model.NH_1022pcm2,
+                backscale=backscale)
+
+            # convert to rates / s / arcmin2
+            scale = 1/(annuli.geomarea_arcmin2 * band.areascales * band.exposures)
+            clustprof *= scale
+            backprof *= scale
+
+            totprofs[i].append(clustprof+backprof)
+            clustprofs[i].append(clustprof)
+            backprofs[i].append(backprof)
+
+    def getrange(profs):
+        median, posrange, negrange = N.percentile(
+            profs, [50, 50+confint/2, 50-confint/2], axis=0)
+        return N.column_stack((median, posrange-median, negrange-median))
+
+    # compute medians and errors
+    uprint(' Computing medians')
+    outprofs = {}
+    for i in range(len(data.bands)):
+        outprofs['band%i_tot' % i] = getrange(totprofs[i])
+        outprofs['band%i_clust' % i] = getrange(clustprofs[i])
+        outprofs['band%i_back' % i] = getrange(backprofs[i])
+
+    # write radii
+    rmid = annuli.midpt_kpc
+    rpos = annuli.edges_kpc[1:] - rmid
+    rneg = annuli.edges_kpc[:-1] - rmid
+    outprofs['radius_kpc'] = N.column_stack((rmid, rpos, rneg))
+
+    rmid = 0.5*(annuli.edges_arcmin[1:]+annuli.edges_arcmin[:-1])
+    rpos = annuli.edges_arcmin[1:] - rmid
+    rneg = annuli.edges_arcmin[:-1] - rmid
+    outprofs['radius_arcmin'] = N.column_stack((rmid, rpos, rneg))
+
+    # write counts and rate
+    for i, band in enumerate(data.bands):
+        cts = band.cts
+        perr = 1 + N.sqrt(band.cts + 0.75)
+        nerr = -N.sqrt(N.clip(band.cts-0.25, 0, None))
+        scale = 1/(annuli.geomarea_arcmin2 * band.areascales * band.exposures)
+
+        outprofs['band%i_cts' % i] = N.column_stack((cts, perr, nerr))
+        outprofs['band%i_rate' % i] = N.column_stack((cts*scale, perr*scale, nerr*scale))
+
+    uprint('Done median computation')
+    return outprofs
+
+def saveSBProfilesHDF5(outfilename, profiles):
+    """Given median profiles from replayChainSB, save output profiles to
+    hdf5.
+    """
+    try:
+        os.unlink(outfilename)
+    except OSError:
+        pass
+    uprint('Writing', outfilename)
+    with h5py.File(outfilename, 'w') as f:
+        for name in profiles:
+            f[name] = profiles[name]
+            f[name].attrs['vsz_twod_as_oned'] = 1
