@@ -108,18 +108,16 @@ class CountRate:
         results = (N.log(allZresults[0]), N.log(allZresults[1]))
         self.ctcache[key] = results
 
-    def getFlux(self, T_keV, Z_solar, ne_cm3, emin_keV=0.01, emax_keV=100.):
+    def getFlux(self, T_keV, Z_solar, ne_cm3, emin_keV=0.01, emax_keV=100., NH_1022pcm2=0.):
         """Get flux per cm3 in erg/cm2/s.
 
         emin_keV and emax_keV are the energy range
         """
 
-        if (emin_keV, emax_keV) not in self.fluxcache:
-            self.makeFluxCache(emin_keV, emax_keV)
-        fluxcache = self.fluxcache[(emin_keV, emax_keV)]
-
-        if not self.fluxcache:
-            self.makeFluxCache()
+        key = (emin_keV, emax_keV, NH_1022pcm2)
+        if key not in self.fluxcache:
+            self.makeFluxCache(*key)
+        fluxcache = self.fluxcache[key]
 
         logT = N.log( N.clip(T_keV, self.Tmin, self.Tmax) )
 
@@ -129,7 +127,7 @@ class CountRate:
         # use Z=0 and Z=1 count rates to evaluate at Z given
         return (Z0_flux + (Z1_flux-Z0_flux)*Z_solar)*ne_cm3**2
 
-    def makeFluxCache(self, emin_keV, emax_keV):
+    def makeFluxCache(self, emin_keV, emax_keV, NH_1022pcm2):
         """Work out fluxes for the temperature grid points and response."""
 
         xspec = XSpecHelper()
@@ -142,6 +140,7 @@ class CountRate:
             for Tlog in CountRate.Tlogvals:
                 flux = xspec.getFlux(
                     N.exp(Tlog), Z_solar, self.cosmo, 1.,
+                    NH_1022pcm2=NH_1022pcm2,
                     emin_keV=emin_keV, emax_keV=emax_keV)
                 Zresults.append(flux)
 
@@ -150,4 +149,4 @@ class CountRate:
                 CountRate.Tlogvals, N.array(Zresults), kind='cubic' ) )
 
         xspec.finish()
-        self.fluxcache[(emin_keV, emax_keV)] = tuple(results)
+        self.fluxcache[(emin_keV, emax_keV, NH_1022pcm2)] = tuple(results)

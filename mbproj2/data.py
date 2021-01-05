@@ -169,7 +169,7 @@ class Band:
 
         self.psfmatrix = psfmatrix
 
-    def calcProjProfileCmpts(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
+    def calcProjProfileCmpts(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1., mode='counts'):
         """Return predicted cluster and background profiles (as tuples).
 
         :param annuli: Annuli object
@@ -179,9 +179,18 @@ class Band:
         :para backscale: scaling factor for background
         """
 
-        rates = annuli.ctrate.getCountRate(
-            self.rmf, self.arf, self.emin_keV, self.emax_keV,
-            NH_1022pcm2, T_prof, Z_prof, ne_prof)
+        if mode == 'counts':
+            rates = annuli.ctrate.getCountRate(
+                self.rmf, self.arf, self.emin_keV, self.emax_keV,
+                NH_1022pcm2, T_prof, Z_prof, ne_prof)
+        elif mode == 'flux':
+            rates = annuli.ctrate.getFlux(
+                T_prof, Z_prof, ne_prof,
+                emin_keV=self.emin_keV, emax_keV=self.emax_keV,
+                NH_1022pcm2=NH_1022pcm2,
+                )
+        else:
+            raise RuntimeError('Invalid mode')
 
         projrates = annuli.projvols_cm3.dot(rates)
 
@@ -195,7 +204,8 @@ class Band:
 
         return clustprof, backprof
 
-    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=1.):
+    def calcProjProfile(self, annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2,
+                        backscale=1., mode='counts'):
         """Predict profile given cluster profiles.
 
         :param annuli: Annuli object
@@ -203,10 +213,11 @@ class Band:
         :param T_prof: temperature in each shell
         :param NH_1022pcm2: absorbing column density
         :para backscale: scaling factor for background
+        :para mode: either 'counts' or 'flux' to compute num counts or erg/cm2/s*exposure
         """
 
         clustprof, backprof = self.calcProjProfileCmpts(
-            annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=backscale)
+            annuli, ne_prof, T_prof, Z_prof, NH_1022pcm2, backscale=backscale, mode=mode)
         return clustprof+backprof
 
 def loadBand(

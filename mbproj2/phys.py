@@ -53,12 +53,13 @@ def fracMassHalf(snum, annuli):
     foutside = 1 - finside
     return finside, foutside
 
-def physFromProfs(model, pars):
+def physFromProfs(model, pars, fluxbands=((0.5, 2.0),)):
     """Given model and parameters, calculate physical quantities.
 
     :param Model model: model to use
     :type pars: dict[str, ParamBase]
     :param pars: parameters to apply
+    :param fluxbands: tuple of energy bands to compute fluxes for
     """
 
     annuli = model.annuli
@@ -90,6 +91,15 @@ def physFromProfs(model, pars):
     v['H_ergpcm3'] = (5/2) * v['ne_pcm3'] * (
         1 + 1/ne_nH) * v['T_keV'] * keV_erg
     v['tcool_yr'] = v['H_ergpcm3'] / v['L_ergpspcm3'] / yr_s
+
+    # fluxes
+    for band in fluxbands:
+        inshells = annuli.ctrate.getFlux(
+            v['T_keV'], v['Z_solar'], v['ne_pcm3'],
+            NH_1022pcm2=model.NH_1022pcm2,
+            emin_keV=band[0], emax_keV=band[1]) * v['vol_cm3']
+        key = 'flux%02i%02icuml_ergpcm2ps' % (int(band[0]*10), int(band[1]*10))
+        v[key] = N.cumsum(inshells)
 
     # turbulent velocity assuming cooling counteracted by cooling
     v['sigma_turb_kmps'] = (
