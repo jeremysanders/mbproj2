@@ -92,7 +92,11 @@ class Fit:
         """
         likelihood = 0.
         for band, predprof in zip(self.data.bands, predprofs):
-            likelihood += utils.cashLogLikelihood(band.cts, predprof)
+            # ignore bins where there is no exposure or no area
+            validbins = (band.exposures>0) & (band.areascales>0)
+
+            likelihood += utils.cashLogLikelihood(
+                band.cts[validbins], predprof[validbins])
         return likelihood
 
     def thawedParVals(self):
