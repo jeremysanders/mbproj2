@@ -26,6 +26,7 @@ import math
 
 import numpy as N
 from scipy.special import hyp2f1
+from scipy import interpolate
 
 from .param import Param
 from .physconstants import kpc_cm
@@ -255,7 +256,7 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
 
     def __init__(
         self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
-            nradbins=5, log=False, intbeyond=False):
+            nradbins=5, log=False, intbeyond=False, mode='linear'):
 
         """
         :param name: used as start of parameter names
@@ -267,12 +268,15 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
         :param interpolate: interpolate values in intermediate bins
         :param log: use 10**values to convert to physical quantity
         :param intbeyond: powerlaw interpolate inside and outside radii (assumes constant values if False)
+        :param mode: interpolation mode 'linear' or 'spline'
         """
 
         CmptMoveRadBase.__init__(
             self, name, annuli, defval=defval, minval=minval, maxval=maxval,
             nradbins=nradbins, log=log)
         self.intbeyond = intbeyond
+        assert mode in ('linear', 'spline')
+        self.mode = mode
 
     def computeProf(self, pars):
         rvals = N.array([pars[n].val for n in self.radparnames])
@@ -284,19 +288,28 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
         vvals = vvals[sortidxs]
 
         logannkpc = self.annuli.massav_logkpc
-        if not self.intbeyond:
-            # do interpolation, truncating at bounds
-            prof = N.interp(logannkpc, rvals, vvals)
-        else:
-            # do interpolating, extending beyond
-            # this is the gradient between each points
-            grads = (vvals[1:]-vvals[:-1]) / (rvals[1:]-rvals[:-1])
-            # index to point below this one (truncating if necessary)
-            idx = N.searchsorted(rvals, logannkpc)-1
-            idx = N.clip(idx, 0, len(grads)-1)
-            # calculate line from point using gradient to next point
-            dr = logannkpc - rvals[idx]
-            prof = vvals[idx] + dr*grads[idx]
+
+        if self.mode == 'linear':
+            if not self.intbeyond:
+                # do interpolation, truncating at bounds
+                prof = N.interp(logannkpc, rvals, vvals)
+            else:
+                # do interpolating, extending beyond
+                # this is the gradient between each points
+                grads = (vvals[1:]-vvals[:-1]) / (rvals[1:]-rvals[:-1])
+                # index to point below this one (truncating if necessary)
+                idx = N.searchsorted(rvals, logannkpc)-1
+                idx = N.clip(idx, 0, len(grads)-1)
+                # calculate line from point using gradient to next point
+                dr = logannkpc - rvals[idx]
+                prof = vvals[idx] + dr*grads[idx]
+        elif self.mode == 'spline':
+            # make a smooth profile which goes through the points
+            tck = interpolate.splrep(rvals, vvals, s=0)
+            prof = interpolate.splev(logannkpc, tck, der=0)
+            if not self.intbeyond:
+                prof[logannkpc<rvals[0]] = vvals[0]
+                prof[logannkpc>rvals[-1]] = vvals[-1]
 
         if self.log:
             prof = 10**prof
