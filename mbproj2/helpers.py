@@ -86,6 +86,40 @@ def fitBeta(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
 
     return ne_beta_cmpt, T_cmpt, Z_cmpt, betapars
 
+def fitVikh(annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=True):
+    """Fit vikhlinin single density model with isothermal cluster.
+
+    Return ne_cmpt, T_cmpt, Z_cmpt, pars
+    """
+
+    ne_cmpt = cmpt.CmptVikhDensity('ne', annuli, mode='single')
+    T_cmpt = cmpt.CmptFlat(
+        'T', annuli, defval=T_keV, minval=0.1, maxval=50.)
+    Z_cmpt = cmpt.CmptFlat(
+        'Z', annuli, defval=Z_solar, minval=-2., maxval=1.)
+    mod = model.ModelNullPot(
+        annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
+
+    pars = mod.defPars()
+    pars['Z'].fixed = True
+
+    thisfit = fit.Fit(pars, mod, data)
+    thisfit.doFitting(silent=silent)
+    like = thisfit.doFitting(silent=silent)
+    uprint(' Log likelihood (Vikhlinin): %.1f' % like)
+
+    return ne_cmpt, T_cmpt, Z_cmpt, pars
+
+
+def estimateNeFromVikhFit(annuli, data, NH_1022pcm2, Z_solar, T_keV, radii_kpc, silent=True):
+    """Return density at radii given, after fitting Vikhlinin model."""
+
+    ne_cmpt, T_cmpt, Z_cmpt, pars = fitVikh(
+        annuli, data, NH_1022pcm2, Z_solar, T_keV, silent=silent)
+
+    prof = ne_cmpt.vikhFunction(pars, radii_kpc)
+    return prof
+
 def initialNeCmptBinnedFromBeta(
     annuli, data, NH_1022pcm2=0.01, Z_solar=0.3, T_keV=3.):
     """Return ne component and initial parameters."""
