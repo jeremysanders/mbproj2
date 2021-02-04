@@ -366,3 +366,63 @@ class CmptMassMulti(CmptMass):
         for cmpt in self.cmpts:
             tot += cmpt.prior(pars)
         return tot
+
+class CmptMassEinasto(CmptMass):
+    """Einasto profile.
+
+    Following: https://doi.org/10.1051/0004-6361/201118543
+    Retana-Montenegro1, Van Hese, Gentile, Baes and F. Frutos-Alfaro
+    2012, A&A, 540, A70
+    """
+
+    def __init__(self, annuli, suffix=None):
+        CmptMass.__init__(self, 'einasto', annuli, suffix=suffix)
+
+    def defPars(self):
+        return {
+            '%s_Mtot_logMsun' % self.name: Param(14., minval=12., maxval=16),
+            '%s_n' % self.name: Param(4.35, minval=0),
+            '%s_rs_logMpc' % self.name: Param(0, minval=-1.3, maxval=0.7),
+        }
+
+    def computeProf(self, pars):
+
+        n = pars['%s_n' % self.name].val
+        Mtot = 10**(pars['%s_Mtot_logMsun' % self.name].val) * solar_mass_g
+        rs = 10**(pars['%s_rs_logMpc' % self.name].val) * Mpc_cm
+        r = self.annuli.massav_cm
+
+        # constant to ensure rs is radius containing half total mass
+        # (solves 2*Gamma(3n,d_n)/Gamma(3n) = 1)
+        d_n = (
+            + 17557576/(1242974068875*n**4)
+            + 1048/(31000725*n**3)
+            + 184/(229635*n*n)
+            + 8/(1215*n)
+            - 1/3
+            + 3*n
+        )
+
+        # scale length
+        h = rs / d_n**n
+
+        # central density (not required)
+        # rho0 = Mtot/(4*math.pi * h**3 * n * scipy.special.gamma(3*n))
+
+        # reduced radius
+        s = r * (d_n**n/rs)
+
+        # expensive calculation used both for M_r and Phi_r
+        gamma_part3n = scipy.special.gammainc(3*n, s**(1/n))
+
+        # cumulative mass as a function of radius
+        M_r = Mtot * gamma_part3n
+
+        # acceleration
+        g_r = G_cgs * M_r / r**2
+
+        # potential
+        Phi_r = G_cgs * Mtot / (h*s) * (
+            1 - gamma_part3n + s*scipy.special.gammainc(2*n, s**(1/n)))
+
+        return g_r, Phi_r
