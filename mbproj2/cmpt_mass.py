@@ -153,7 +153,7 @@ class CmptMassGNFW(CmptMass):
         cosmo = self.annuli.cosmology
         Hz_km_s_Mpc = cosmo.H0 * math.sqrt(
             cosmo.WM*(1.+cosmo.z)**3 + cosmo.WV )
- 
+
         # critical density at redshift of halo
         rho_c = 3 * ( Hz_km_s_Mpc / Mpc_km )**2 / (8 * math.pi * G_cgs)
         rho_0 = delta_c * rho_c
@@ -219,13 +219,13 @@ class CmptMassKing(CmptMass):
         rsqrtfac = N.sqrt(r**2 + r0**2)
 
         g = (G_cgs/r**2)*(4*math.pi*r0**3*rho0) * (
-            -r / rsqrtfac + 
+            -r / rsqrtfac +
              N.arcsinh(r/r0))
 
         # taken from isothermal.nb
         phi = ( -8 * G_cgs * math.pi * (r0/r)**3 * (
                 (r*N.sqrt(((r**2 + r0**2)*(-r0 + rsqrtfac))/
-                          (r0 + rsqrtfac)) + 
+                          (r0 + rsqrtfac)) +
                  r0*N.sqrt(r**2 + 2*r0*(r0 - rsqrtfac)))* rho0 *
                 N.arcsinh(N.sqrt(-1./2 + 0.5*N.sqrt(1 + r**2/r0**2))) ))
 
@@ -271,7 +271,7 @@ class CmptMassArb(CmptMass):
         """
         :param Annuli annuli: annuli used
         :param suffix: suffix to append to name arb in parameters
-        """        
+        """
         CmptMass.__init__(self, 'arb', annuli, suffix=suffix)
         self.nradbins = nradbins
 
@@ -412,17 +412,23 @@ class CmptMassEinasto(CmptMass):
         # reduced radius
         s = r * (d_n**n/rs)
 
-        # expensive calculation used both for M_r and Phi_r
-        gamma_part3n = scipy.special.gammainc(3*n, s**(1/n))
+        # precompute values used for M_r and Phi_r
+        s_pow_inv_n = s**(1/n)
+        Gamma_P_3n = scipy.special.gammainc(3*n, s_pow_inv_n)
+        Gamma_Q_2n = scipy.special.gammaincc(2*n, s_pow_inv_n)
+        Gamma_2n_3n = scipy.special.gamma(2*n)/scipy.special.gamma(3*n)
+        inv_r = 1/r
 
-        # cumulative mass as a function of radius
-        M_r = Mtot * gamma_part3n
+        # cumulative mass as a function of radius (note Gamma_P=1-Gamma_Q)
+        M_r = Mtot * Gamma_P_3n
 
         # acceleration
-        g_r = G_cgs * M_r / r**2
+        g_r = G_cgs * M_r * inv_r**2
 
-        # potential
-        Phi_r = G_cgs * Mtot / (h*s) * (
-            1 - gamma_part3n + s*scipy.special.gammainc(2*n, s**(1/n)))
+        # potential (note sign changed from eqn 19 in above paper)
+        Phi_r = -G_cgs * Mtot * inv_r * (
+            Gamma_P_3n +
+            s * Gamma_Q_2n * Gamma_2n_3n
+        )
 
         return g_r, Phi_r
