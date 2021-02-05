@@ -381,7 +381,7 @@ class CmptMassEinasto(CmptMass):
     def defPars(self):
         return {
             '%s_Mtot_logMsun' % self.name: Param(14., minval=12., maxval=16),
-            '%s_n' % self.name: Param(4.35, minval=0),
+            '%s_n' % self.name: Param(4.35, minval=0, maxval=20),
             '%s_rs_logMpc' % self.name: Param(0, minval=-1.3, maxval=0.7),
         }
 
@@ -416,7 +416,9 @@ class CmptMassEinasto(CmptMass):
         s_pow_inv_n = s**(1/n)
         Gamma_P_3n = scipy.special.gammainc(3*n, s_pow_inv_n)
         Gamma_Q_2n = scipy.special.gammaincc(2*n, s_pow_inv_n)
-        Gamma_2n_3n = scipy.special.gamma(2*n)/scipy.special.gamma(3*n)
+        # Gamma(2n)/Gamma(3n)
+        Gamma_2n_3n = math.exp(
+            scipy.special.gammaln(2*n)-scipy.special.gammaln(3*n))
         inv_r = 1/r
 
         # cumulative mass as a function of radius (note Gamma_P=1-Gamma_Q)
