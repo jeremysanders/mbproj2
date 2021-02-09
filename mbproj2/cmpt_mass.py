@@ -395,7 +395,7 @@ class CmptMassEinasto(CmptMass):
         # constant to ensure rs is radius containing half total mass
         # (solves 2*Gamma(3n,d_n)/Gamma(3n) = 1)
         d_n = (
-            + 17557576/(1242974068875*n**4)
+            - 17557576/(1242974068875*n**4)
             + 1048/(31000725*n**3)
             + 184/(229635*n*n)
             + 8/(1215*n)
