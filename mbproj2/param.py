@@ -69,16 +69,20 @@ class Param(ParamBase):
 class ParamGaussian(ParamBase):
     """Parameter with a Gaussian/normal prior."""
 
-    def __init__(self, val, prior_mu, prior_sigma, frozen=False):
+    def __init__(self, val, prior_mu, prior_sigma, frozen=False, minval=None, maxval=None):
         """
         :param float val: value of parameter
         :param float prior_mu: centre of prior
         :param float prior_sigma: width of prior
         :param bool frozen: whether parameter is allowed to vary
+        :param float minval: minimum allowed value
+        :param float maxval: maximum allowed value
         """
         ParamBase.__init__(self, val, frozen=frozen)
         self.prior_mu = prior_mu
         self.prior_sigma = prior_sigma
+        self.minval = minval
+        self.maxval = maxval
 
     def __repr__(self):
         return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, frozen=%s>' % (
@@ -88,8 +92,13 @@ class ParamGaussian(ParamBase):
         if self.prior_sigma == 0:
             return 0.
 
+        if self.maxval is not None and self.val > self.maxval:
+            return -N.inf
+        if self.minval is not None and self.val < self.minval:
+            return -N.inf
+
         return (
             -0.5*math.log(2*math.pi)
             -math.log(self.prior_sigma)
             -0.5*((self.val - self.prior_mu) / self.prior_sigma)**2
-            )
+        )
