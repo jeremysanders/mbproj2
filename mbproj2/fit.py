@@ -232,7 +232,7 @@ class Fit:
                 'axis', name='x', direction='horizontal',
                 autoRange='+2%')
             if logx:
-                axis.log.val = True
+                xaxis.log.val = True
 
             for i in range(len(self.data.bands)):
                 graph = grid.Add('graph', name='graph%i' % i)
