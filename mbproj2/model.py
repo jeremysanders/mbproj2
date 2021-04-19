@@ -155,15 +155,17 @@ class ModelHydro(Model):
     The Pout_logergpcm3 parameter is the outer pressure in log10 erg/cm^3.
     """
 
-    def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt, NH_1022pcm2=None):
+    def __init__(self, annuli, mass_cmpt, ne_cmpt, Z_cmpt, NH_1022pcm2=None, gas_mass=True):
         """
         :param Annuli annuli: annuli to analyse
         :param CmptMass mass_cmpt: dark matter mass component
         :param Cmpt ne_cmpt: density component
         :param Cmpt Z_cmpt: metallicity component
         :param float NH_1022pcm2: absorbing column density in 10^22 cm^-2
+        :param bool gas_mass: include gas in mass computation
         """
         Model.__init__(self, annuli, NH_1022pcm2=NH_1022pcm2)
+        self.gas_mass = gas_mass
         self.mass_cmpt = mass_cmpt
         self.ne_cmpt = ne_cmpt
         self.Z_cmpt = Z_cmpt
@@ -196,8 +198,9 @@ class ModelHydro(Model):
         Z_solar = self.Z_cmpt.computeProf(pars)
         Z_solar = N.clip(Z_solar, 0, 1e99)
 
-        # add (small) gas contribution to total acceleration
-        g_cmps2 += computeGasAccn(self.annuli, ne_pcm3)
+        if self.gas_mass:
+            # add (small) gas contribution to total acceleration
+            g_cmps2 += computeGasAccn(self.annuli, ne_pcm3)
 
         # changes in pressure in outer and inner halves of bin (around massav)
         ptmp = g_cmps2 * ne_pcm3 * (mu_e*mu_g)
