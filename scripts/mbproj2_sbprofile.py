@@ -94,6 +94,9 @@ def main():
     parser.add_argument('--exp-from-expmap',
                         action='store_true',
                         help='take exposure from exposure map (s)')
+    parser.add_argument('--force-exposure',
+                        type=float, default=-1,
+                        help='Set exposure at xc, yc manually')
     parser.add_argument('--bin', type=float, default=1,
                         help='bin factor (pixels)')
     parser.add_argument('--oversample', type=int, default=1,
@@ -139,13 +142,8 @@ def main():
     else:
         expmap = None
 
-    # exposure from header
-    if args.exp_from_expmap:
-        assert expmap is not None
-        exposure = expmap[int(args.yc), int(args.xc)]
-        if not N.isfinite(exposure) or exposure <= 10:
-            print("WARNING: likely invalid exposure obtained from exposure image",
-                  file=sys.stderr)
+    if args.force_exposure > 0:
+        exposure = args.force_exposure
     else:
         if exposure is None:
             print("WARNING: no EXPOSURE keyword in image. Assuming 1.", file=sys.stderr)
@@ -157,6 +155,9 @@ def main():
             img = oversampleSimple(img, args.oversample)
             img[f[0].data==0] = N.nan
 
+        if expmap is not None:
+            expmap[~N.isfinite(img)] = N.nan
+
     ctsum, pixsum = makeProfile(img, xc, yc, rmax, binf)
     areas = pixsum * pixsize_arcmin**2
     exposures = N.full_like(ctsum, exposure)
@@ -167,18 +168,21 @@ def main():
         expsum, exppixsum = makeProfile(expmap, xc, yc, rmax, binf)
         avexp = expsum / exppixsum
 
-        # get estimate of central value in profile
-        npix = sumexp = i = 0
-        while npix < 20:
-            npix += exppixsum[i]
-            sumexp += expsum[i]
-            i += 1
+        if args.exp_from_expmap:
+            exposures = avexp
+        else:
+            # get estimate of central value in profile
+            npix = sumexp = i = 0
+            while npix < 20:
+                npix += exppixsum[i]
+                sumexp += expsum[i]
+                i += 1
 
-        # scale by central value (where rmf is calculated)
-        scaledexp = avexp / (sumexp / npix)
+            # scale by central value (where rmf is calculated)
+            scaledexp = avexp / (sumexp / npix)
 
-        # scale outputted exposures by this factor
-        exposures = N.where(N.isfinite(scaledexp), exposures*scaledexp, 0.)
+            # scale outputted exposures by this factor
+            exposures = N.where(N.isfinite(scaledexp), exposures*scaledexp, 0.)
 
     with open(args.outprofile, 'w') as fout:
         incentre = True
