@@ -63,13 +63,13 @@ class CmptMassNFW(CmptMass):
 
     def defPars(self):
         return {
-            '%s_logconc' % self.name: Param(2., minval=-2., maxval=2.),
+            '%s_logconc' % self.name: Param(0.3, minval=-2., maxval=2.),
             '%s_r200_logMpc' % self.name: Param(0., minval=-1., maxval=1.)
             }
 
     def computeProf(self, pars):
-        c = 10**(pars['%s_logconc' % self.name].val)
-        r200 = 10**(pars['%s_r200_logMpc' % self.name].val)
+        c = 10**(pars['%s_logconc' % self.name].v)
+        r200 = 10**(pars['%s_r200_logMpc' % self.name].v)
         radius_cm = self.annuli.massav_cm
         #radius_cm = self.annuli.midpt_cm
 
@@ -135,8 +135,8 @@ class CmptMassNFWfnM(CmptMass):
         }
 
     def computeProf(self, pars):
-        c = 10**(pars['%s_logconc' % self.name].val)
-        M_X00_g = 10**(pars['%s_M_logMsun' % self.name].val) * solar_mass_g
+        c = 10**(pars['%s_logconc' % self.name].v)
+        M_X00_g = 10**(pars['%s_M_logMsun' % self.name].v) * solar_mass_g
 
         delta_c = (200/3) * c**3 / (math.log(1.+c) - c/(1+c))
         cosmo = self.annuli.cosmology
@@ -207,9 +207,9 @@ class CmptMassGNFW(CmptMass):
 
     def computeProf(self, pars):
         # get parameter values
-        c = 10**(pars['%s_logconc' % self.name].val)
-        r200_Mpc = 10**(pars['%s_r200_logMpc' % self.name].val)
-        alpha = pars['%s_alpha' % self.name].val
+        c = 10**(pars['%s_logconc' % self.name].v)
+        r200_Mpc = 10**(pars['%s_r200_logMpc' % self.name].v)
+        alpha = pars['%s_alpha' % self.name].v
 
         # check to make sure funny things don't happen
         alpha = max(min(alpha, 2.999), 0.)
@@ -278,8 +278,8 @@ class CmptMassKing(CmptMass):
             }
 
     def computeProf(self, pars):
-        sigma_cmps = 10**(pars['%s_sigma_logkmps' % self.name].val) * km_cm
-        r0 = 10**(pars['%s_rcore_logkpc' % self.name].val) * kpc_cm
+        sigma_cmps = 10**(pars['%s_sigma_logkmps' % self.name].v) * km_cm
+        r0 = 10**(pars['%s_rcore_logkpc' % self.name].v) * kpc_cm
 
         # calculate central density from r0 and sigma
         rho0 = 9*sigma_cmps**2 / (4 * math.pi * G_cgs * r0**2)
@@ -322,7 +322,7 @@ class CmptMassPoint(CmptMass):
             }
 
     def computeProf(self, pars):
-        mass_g = 10**(pars['%s_M_logMsun' % self.name].val) * solar_mass_g
+        mass_g = 10**(pars['%s_M_logMsun' % self.name].v) * solar_mass_g
 
         r = self.annuli.massav_cm
         g = G_cgs * mass_g / r**2
@@ -367,8 +367,8 @@ class CmptMassArb(CmptMass):
         return valspars
 
     def computeProf(self, pars):
-        rvals = N.array([pars[n].val for n in self.radparnames])
-        rhovals = N.array([pars[n].val for n in self.valparnames])
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        rhovals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -457,9 +457,9 @@ class CmptMassEinasto(CmptMass):
 
     def computeProf(self, pars):
 
-        n = pars['%s_n' % self.name].val
-        Mtot = 10**(pars['%s_Mtot_logMsun' % self.name].val) * solar_mass_g
-        rs = 10**(pars['%s_rs_logMpc' % self.name].val) * Mpc_cm
+        n = pars['%s_n' % self.name].v
+        Mtot = 10**(pars['%s_Mtot_logMsun' % self.name].v) * solar_mass_g
+        rs = 10**(pars['%s_rs_logMpc' % self.name].v) * Mpc_cm
         r = self.annuli.massav_cm
 
         # constant to ensure rs is radius containing half total mass

@@ -184,7 +184,7 @@ class ModelHydro(Model):
         """
 
         # this is the outer pressure
-        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
+        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].v
 
         # this is acceleration and potential from mass model
         g_cmps2, pot_ergpg = self.mass_cmpt.computeProf(pars)
@@ -283,7 +283,7 @@ class ModelHydroEntropy(Model):
         gravity, this changes g."""
 
         # this is the outer pressure
-        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].val
+        P0_ergpcm3 = 10**pars['Pout_logergpcm3'].v
 
         # compute the entropy and clip to avoid numerical issues
         Ke_keVcm2 = self.K_cmpt.computeProf(pars)

@@ -70,7 +70,7 @@ class Fit:
 
         # optional background scaling parameter
         if 'backscale' in self.pars:
-            backscale = self.pars['backscale'].val
+            backscale = self.pars['backscale'].v
         else:
             backscale = 1.
 
@@ -101,14 +101,14 @@ class Fit:
 
     def thawedParVals(self):
         """Return list of numeric values of thawed parameters."""
-        return [self.pars[name].val for name in self.thawed]
+        return [self.pars[name].v for name in self.thawed]
 
     def updateThawed(self, vals):
         """Update values of parameter ParamBase objects which are thawed.
         :param list[float] vals: numerical values of parameters
         """
         for val, name in zip(vals, self.thawed):
-            self.pars[name].val = val
+            self.pars[name].v = val
 
     def getLikelihood(self, vals=None):
         """Get likelihood for parameters given.
@@ -257,7 +257,7 @@ class Fit:
             grid.Action('zeroMargins')
 
         if 'backscale' in self.pars:
-            backscale = self.pars['backscale'].val
+            backscale = self.pars['backscale'].v
         else:
             backscale = 1.
 

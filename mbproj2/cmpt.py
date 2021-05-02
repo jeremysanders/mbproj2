@@ -90,7 +90,7 @@ class CmptFlat(Cmpt):
             self.defval, minval=self.minval, maxval=self.maxval)}
 
     def computeProf(self, pars):
-        v = pars[self.name].val
+        v = pars[self.name].v
         if self.log:
             v = 10**v
 
@@ -135,7 +135,7 @@ class CmptBinned(Cmpt):
     def computeProf(self, pars):
 
         # extract radial parameters for model
-        pvals = N.array([pars[n].val for n in self.parnames])
+        pvals = N.array([pars[n].v for n in self.parnames])
 
         if self.binning == 1:
             profile = pvals
@@ -183,7 +183,7 @@ class CmptBinnedJumpPrior(CmptBinned):
 
         # this is a hacky prior to ensure that the values in the
         # profile do not jump by more than a factor of jumpprior
-        pvals = N.array([pars[n].val for n in self.parnames])
+        pvals = N.array([pars[n].v for n in self.parnames])
         if self.log:
             pvals = 10**pvals
 
@@ -279,8 +279,8 @@ class CmptInterpolMoveRad(CmptMoveRadBase):
         self.mode = mode
 
     def computeProf(self, pars):
-        rvals = N.array([pars[n].val for n in self.radparnames])
-        vvals = N.array([pars[n].val for n in self.valparnames])
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -319,8 +319,8 @@ class CmptInterpolMoveRadIncr(CmptInterpolMoveRad):
     """Radial profile which has to rise inwards."""
 
     def prior(self, pars):
-        rvals = N.array([pars[n].val for n in self.radparnames])
-        vvals = N.array([pars[n].val for n in self.valparnames])
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -335,8 +335,8 @@ class CmptBinnedMoveRad(CmptMoveRadBase):
     """Binned data with movable radii."""
 
     def computeProf(self, pars):
-        rvals = N.array([pars[n].val for n in self.radparnames])
-        vvals = N.array([pars[n].val for n in self.valparnames])
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -350,6 +350,67 @@ class CmptBinnedMoveRad(CmptMoveRadBase):
         idxsclip = N.clip(idxs, 0, len(vvals)-1)
         prof = vvals[idxsclip]
         return prof
+
+class CmptInterpolWJumps(Cmpt):
+    """Interpolated model parametrized in bins, where the value is interpolated between a and b."""
+
+    def __init__(
+        self, name, annuli, defval=0., minval=-1e99, maxval=1e99,
+            nradbins=5, log=False):
+
+        Cmpt.__init__(self, name, annuli)
+        self.defval = defval
+        self.minval = minval
+        self.maxval = maxval
+        self.log = log
+        self.nradbins = nradbins
+
+        self.radparnames = ['%s_r_%03i' % (self.name, i) for i in range(nradbins)]
+        self.aparnames = ['%s_a_%03i' % (self.name, i) for i in range(nradbins-1)]
+        self.bparnames = ['%s_b_%03i' % (self.name, i) for i in range(nradbins-1)]
+
+    def defPars(self):
+        pars = {
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.aparnames
+        }
+        pars.update({
+            n: Param(self.defval, minval=self.minval, maxval=self.maxval)
+            for n in self.bparnames
+        })
+
+        # log spacing in radius (with radial range fixed)
+        rlogannuli = self.annuli.midpt_logkpc
+        rlog = N.linspace(rlogannuli[0], rlogannuli[-1], self.nradbins)
+        pars.update({
+            n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
+            for n, r in zip(self.radparnames, rlog)
+        })
+
+        return pars
+
+    def computeProf(self, pars):
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        avals = N.array([pars[n].v for n in self.aparnames])
+        bvals = N.array([pars[n].v for n in self.bparnames])
+
+        if N.any(rvals[1:]-rvals[:-1]) <= 0:
+            return self.annuli.massav_kpc*0
+
+        # clunky - have to do loop
+        r = self.annuli.massav_logkpc
+        out = N.zeros(len(r))
+        for i in range(len(avals)):
+            sel = (r>=rvals[i]) & (r<rvals[i+1])
+            out[sel] = N.interp(r[sel], [rvals[i], rvals[i+1]], [avals[i], bvals[i]])
+
+        out[r<rvals[0]] = avals[0]
+        out[r>rvals[-1]] = bvals[-1]
+
+        if self.log:
+            out = 10**out
+
+        return out
 
 class CmptBinWidthIncr(Cmpt):
     """Component where bins have increasing widths.
@@ -400,12 +461,12 @@ class CmptBinWidthIncr(Cmpt):
         return valspars
 
     def computeProf(self, pars):
-        wvals = N.array([pars[n].val for n in self.radparnames])
-        vvals = N.array([pars[n].val for n in self.valparnames])
+        wvals = N.array([pars[n].v for n in self.radparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
         if self.log:
             vvals = 10**vvals
-        
-        outer_kpc = 10**pars['%s_r_outer' % self.name].val
+
+        outer_kpc = 10**pars['%s_r_outer' % self.name].v
 
         bwincr = N.cumsum(10**wvals)
         rvals = N.cumsum(bwincr)
@@ -438,7 +499,7 @@ class CmptIncr(Cmpt):
             }
 
     def computeProf(self, pars):
-        pvals = N.array([pars[n].val for n in self.parnames])
+        pvals = N.array([pars[n].v for n in self.parnames])
         pvals = 10**pvals
 
         pvals = N.cumsum(pvals[::-1])[::-1]
@@ -495,8 +556,8 @@ class CmptIncrMoveRad(Cmpt):
         return valspars
 
     def computeProf(self, pars):
-        rvals = N.array([pars[n].val for n in self.radparnames])
-        vvals = N.array([pars[n].val for n in self.valparnames])
+        rvals = N.array([pars[n].v for n in self.radparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -515,7 +576,7 @@ class CmptIncrMoveRad(Cmpt):
             logwidthkpc[0] = logekpc[1] - 0.5*N.log10(ekpc[0]+ekpc[1])
 
         deltas = gradprof * logwidthkpc
-        outer = 10**pars['%s_outer' % self.name].val
+        outer = 10**pars['%s_outer' % self.name].v
         prof = N.cumsum(deltas[::-1])[::-1] + outer
 
         return prof
@@ -554,9 +615,9 @@ class CmptBeta(Cmpt):
             }
 
     def computeProf(self, pars):
-        n0 = 10**pars['%s_n0' % self.name].val
-        beta = pars['%s_beta' % self.name].val
-        rc = 10**pars['%s_rc' % self.name].val
+        n0 = 10**pars['%s_n0' % self.name].v
+        beta = pars['%s_beta' % self.name].v
+        rc = 10**pars['%s_rc' % self.name].v
         return betaprof(self.annuli.rin_cm, self.annuli.rout_cm, n0, beta, rc)
 
 class CmptDoubleBeta(Cmpt):
@@ -580,14 +641,14 @@ class CmptDoubleBeta(Cmpt):
         return (
             betaprof(
                 self.annuli.rin_cm, self.annuli.rout_cm,
-                10**pars['%s_n0_1' % self.name].val,
-                pars['%s_beta_1' % self.name].val,
-                10**pars['%s_rc_1' % self.name].val) +
+                10**pars['%s_n0_1' % self.name].v,
+                pars['%s_beta_1' % self.name].v,
+                10**pars['%s_rc_1' % self.name].v) +
             betaprof(
                 self.annuli.rin_cm, self.annuli.rout_cm,
-                10**pars['%s_n0_2' % self.name].val,
-                pars['%s_beta_2' % self.name].val,
-                10**pars['%s_rc_2' % self.name].val))
+                10**pars['%s_n0_2' % self.name].v,
+                pars['%s_beta_2' % self.name].v,
+                10**pars['%s_rc_2' % self.name].v))
 
 class CmptVikhDensity(Cmpt):
     """Density model from Vikhlinin+06, Eqn 3.
@@ -628,10 +689,10 @@ class CmptVikhDensity(Cmpt):
         return pars
 
     def vikhFunction(self, pars, radii_kpc):
-        n0_1 = 10**pars['%s_n0_1' % self.name].val
-        beta_1 = pars['%s_beta_1' % self.name].val
-        rc_1 = 10**pars['%s_logrc_1' % self.name].val
-        alpha = pars['%s_alpha' % self.name].val
+        n0_1 = 10**pars['%s_n0_1' % self.name].v
+        beta_1 = pars['%s_beta_1' % self.name].v
+        rc_1 = 10**pars['%s_logrc_1' % self.name].v
+        alpha = pars['%s_alpha' % self.name].v
 
         r = radii_kpc
         retn_sqd = (
@@ -641,16 +702,16 @@ class CmptVikhDensity(Cmpt):
             )
 
         if self.mode in ('single', 'double'):
-            r_s = 10**pars['%s_logr_s' % self.name].val
-            epsilon = pars['%s_epsilon' % self.name].val
-            gamma = pars['%s_gamma' % self.name].val
+            r_s = 10**pars['%s_logr_s' % self.name].v
+            epsilon = pars['%s_epsilon' % self.name].v
+            gamma = pars['%s_gamma' % self.name].v
 
             retn_sqd /= (1+(r/r_s)**gamma)**(epsilon/gamma)
 
         if self.mode == 'double':
-            n0_2 = 10**pars['%s_n0_2' % self.name].val
-            rc_2 = 10**pars['%s_logrc_2' % self.name].val
-            beta_2 = pars['%s_beta_2' % self.name].val
+            n0_2 = 10**pars['%s_n0_2' % self.name].v
+            rc_2 = 10**pars['%s_logrc_2' % self.name].v
+            beta_2 = pars['%s_beta_2' % self.name].v
 
             retn_sqd += n0_2**2 / (1 + r**2/rc_2**2)**(3*beta_2)
 
@@ -660,9 +721,9 @@ class CmptVikhDensity(Cmpt):
         return self.vikhFunction(pars, self.annuli.midpt_kpc)
 
     def prior(self, pars):
-        rc_1 = 10**pars['%s_logrc_1' % self.name].val
+        rc_1 = 10**pars['%s_logrc_1' % self.name].v
         try:
-            r_s = 10**pars['%s_logr_s' % self.name].val
+            r_s = 10**pars['%s_logr_s' % self.name].v
         except KeyError:
             return 0
         if rc_1 > r_s:
@@ -691,14 +752,14 @@ class CmptMcDonaldTemperature(Cmpt):
 
     def computeProf(self, pars):
         n = self.name
-        T0 = 10**pars['%s_logT0' % n].val
-        Tmin = 10**pars['%s_logTmin' % n].val
-        rc = 10**pars['%s_logrc' % n].val
-        rt = 10**pars['%s_logrt' % n].val
-        acool = pars['%s_acool' % n].val
-        a = pars['%s_a' % n].val
-        b = pars['%s_b' % n].val
-        c = pars['%s_c' % n].val
+        T0 = 10**pars['%s_logT0' % n].v
+        Tmin = 10**pars['%s_logTmin' % n].v
+        rc = 10**pars['%s_logrc' % n].v
+        rt = 10**pars['%s_logrt' % n].v
+        acool = pars['%s_acool' % n].v
+        a = pars['%s_a' % n].v
+        b = pars['%s_b' % n].v
+        c = pars['%s_c' % n].v
 
         x = self.annuli.midpt_kpc
         T = (

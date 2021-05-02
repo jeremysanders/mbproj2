@@ -39,7 +39,16 @@ class ParamBase:
         return '<ParamBase: val=%.3g, frozen=%s>' % (
             self.val, self.frozen)
 
-    def prior():
+    def xform(self):
+        """Return transformed parameter to be used by model."""
+        return self.val
+
+    @property
+    def v(self):
+        """Get parameter, possibly transformed."""
+        return self.xform()
+
+    def prior(self):
         """Log prior on parameter."""
         return 0.
 
@@ -65,6 +74,29 @@ class Param(ParamBase):
         if self.val < self.minval or self.val > self.maxval:
             return -N.inf
         return 0.
+
+class ParamLinked:
+    """Parameter linked to another parameter.
+
+    :param otherpar: other Param to link to
+    """
+
+    def __init__(self, otherpar):
+        self.frozen = True
+        self.otherpar = otherpar
+
+    @property
+    def val(self):
+        return self.otherpar.val
+    @val.setter
+    def val(self, val):
+        pass
+
+    def prior(self):
+        return 0.
+
+    def __repr__(self):
+        return '<ParamLinked: %s>' % (self.otherpar,)
 
 class ParamGaussian(ParamBase):
     """Parameter with a Gaussian/normal prior."""
