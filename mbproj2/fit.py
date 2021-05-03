@@ -108,7 +108,7 @@ class Fit:
         :param list[float] vals: numerical values of parameters
         """
         for val, name in zip(vals, self.thawed):
-            self.pars[name].v = val
+            self.pars[name].val = val
 
     def getLikelihood(self, vals=None):
         """Get likelihood for parameters given.
