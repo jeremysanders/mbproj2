@@ -132,7 +132,7 @@ class CountRate:
         # use Z=0 and Z=1 count rates to evaluate at Z given
         return (Z0_flux + (Z1_flux-Z0_flux)*Z_solar)*ne_cm3**2
 
-    def makeFluxCache(self, emin_keV, emax_keV, NH_1022pcm2, abun, absorb):
+    def makeFluxCache(self, emin_keV, emax_keV, NH_1022pcm2, abun, absorb, apecroot):
         """Work out fluxes for the temperature grid points and response."""
 
         xspec = XSpecHelper()
