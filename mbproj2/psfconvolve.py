@@ -169,7 +169,7 @@ def convImagePSFMatrix(psfimg, pixsize_arcmin, shell_edges, cache=True,
     key = h.hexdigest()
 
     with utils.WithLock(cachefile+'.lockdir') as lock:
-        cachef = h5py.File(cachefile)
+        cachef = h5py.File(cachefile, 'a')
         if key in cachef:
             psfmat = N.array(cachef[key])
         else:
@@ -223,7 +223,7 @@ def cachedPSFMatrix(psf_edge, psf_val, shell_edges, cachefile='psf_cache.hdf5'):
     key = h.hexdigest()
 
     with utils.WithLock(cachefile+'.lockdir') as lock:
-        with h5py.File(cachefile) as cache:
+        with h5py.File(cachefile, 'a') as cache:
             if key not in cache:
                 psf = linearComputePSFMatrix(psf_edge, psf_val, shell_edges)
                 cache[key] = psf

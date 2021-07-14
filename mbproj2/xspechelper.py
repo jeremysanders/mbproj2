@@ -63,6 +63,9 @@ class XSpecHelper:
     specialcode = '@S@T@V'
     specialre = re.compile('%s (.*) %s' % (specialcode, specialcode))
     normfactor = 1e75 # multiply norm by this to get into sensible units in xspec
+    abun = 'angr'
+    absorb = 'phabs'
+    apecroot = None
 
     def __init__(self):
         try:
@@ -81,6 +84,9 @@ class XSpecHelper:
         _finishatexit.append(self)
 
         self.write('set SCODE %s\n' % self.specialcode)
+        self.write('abun %s\n' % self.abun)
+        if self.apecroot is not None:
+            self.write('xset APECROOT %s\n' % self.apecroot)
 
         # debugging
         logfile = os.path.join(os.environ['HOME'], 'xspec.log.%i' % id(self))
@@ -118,8 +124,10 @@ class XSpecHelper:
         """Make a model with column density, temperature and density given."""
         self.write('model none\n')
         norm = 1e-14 / 4 / pi / (cosmo.D_A*Mpc_cm * (1.+cosmo.z))**2 * ne_cm3**2 / ne_nH
-        self.write('model phabs(apec) & %g & %g & %g & %g & %g\n' %
-            (NH_1022, T_keV, Z_solar, cosmo.z, norm*XSpecHelper.normfactor))
+        self.write('model %s(apec) & %g & %g & %g & %g & %g\n' % (
+            self.absorb, NH_1022, T_keV, Z_solar, cosmo.z,
+            norm*XSpecHelper.normfactor
+        ))
         self.throwAwayOutput()
 
     def changeResponse(self, rmf, arf, minenergy_keV, maxenergy_keV):

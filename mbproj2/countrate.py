@@ -54,7 +54,10 @@ class CountRate:
         """get count rate in counts per cm3 for parcel of gas between energies
         given."""
 
-        key = (minenergy_keV, maxenergy_keV, self.cosmo.z, NH_1022, rmf, arf)
+        key = (
+            minenergy_keV, maxenergy_keV, self.cosmo.z, NH_1022, rmf, arf,
+            XSpecHelper.abun, XSpecHelper.absorb, XSpecHelper.apecroot
+        )
 
         if key not in self.ctcache:
             self.addCountCache(key)
@@ -74,7 +77,7 @@ class CountRate:
         given.
         """
 
-        minenergy_keV, maxenergy_keV, z, NH_1022, rmf, arf = key
+        minenergy_keV, maxenergy_keV, z, NH_1022, rmf, arf, abun, absorb, apecroot = key
 
         if not os.path.exists(rmf):
             raise RuntimeError('RMF %s does not exist' % rmf)
@@ -86,7 +89,7 @@ class CountRate:
         # nasty hack to stop concurrent access breaking
         with utils.WithLock(hdffile + '.lockdir') as lock:
             textkey = '_'.join(str(x) for x in key).replace('/', '@')
-            with h5py.File(hdffile) as f:
+            with h5py.File(hdffile, 'a') as f:
                 if textkey not in f:
                     xspec = XSpecHelper()
                     xspec.changeResponse(rmf, arf, minenergy_keV, maxenergy_keV)
@@ -114,7 +117,9 @@ class CountRate:
         emin_keV and emax_keV are the energy range
         """
 
-        key = (emin_keV, emax_keV, NH_1022pcm2)
+        key = (
+            emin_keV, emax_keV, NH_1022pcm2,
+            XSpecHelper.abun, XSpecHelper.absorb, XSpecHelper.apecroot)
         if key not in self.fluxcache:
             self.makeFluxCache(*key)
         fluxcache = self.fluxcache[key]
@@ -127,7 +132,7 @@ class CountRate:
         # use Z=0 and Z=1 count rates to evaluate at Z given
         return (Z0_flux + (Z1_flux-Z0_flux)*Z_solar)*ne_cm3**2
 
-    def makeFluxCache(self, emin_keV, emax_keV, NH_1022pcm2):
+    def makeFluxCache(self, emin_keV, emax_keV, NH_1022pcm2, abun, absorb):
         """Work out fluxes for the temperature grid points and response."""
 
         xspec = XSpecHelper()
@@ -149,4 +154,7 @@ class CountRate:
                 CountRate.Tlogvals, N.array(Zresults), kind='cubic' ) )
 
         xspec.finish()
-        self.fluxcache[(emin_keV, emax_keV, NH_1022pcm2)] = tuple(results)
+        self.fluxcache[(
+            emin_keV, emax_keV, NH_1022pcm2,
+            XSpecHelper.abun, XSpecHelper.absorb, XSpecHelper.apecroot
+        )] = tuple(results)

@@ -30,5 +30,6 @@ from .mcmc import *
 from .helpers import *
 from .param import *
 from .phys import *
+from .xspechelper import XSpecHelper
 from .psfconvolve import *
 from .yml_driver import ymlCmdLineParse
