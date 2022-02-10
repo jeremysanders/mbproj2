@@ -337,7 +337,7 @@ class CmptMassArb(CmptMass):
 
     """
 
-    def __init__(self, annuli, nradbins, suffix=None):
+    def __init__(self, annuli, nradbins, suffix=None, defval=-24):
         """
         :param Annuli annuli: annuli used
         :param suffix: suffix to append to name arb in parameters
@@ -348,6 +348,7 @@ class CmptMassArb(CmptMass):
         # list of all the parameter names for the annuli
         self.valparnames = ['%s_rho_%03i' % (self.name, i) for i in range(nradbins)]
         self.radparnames = ['%s_r_%03i' % (self.name, i) for i in range(nradbins)]
+        self.defval = defval
 
     def defPars(self):
         rlogannuli = self.annuli.midpt_logkpc
@@ -355,12 +356,12 @@ class CmptMassArb(CmptMass):
         rpars = {
             n: Param(r, minval=rlogannuli[0], maxval=rlogannuli[-1], frozen=True)
             for n, r in zip(self.radparnames, rlog)
-            }
+        }
 
         valspars = {
-            n: Param(self.defval, minval=-15., maxval=4.)
+            n: Param(self.defval, minval=-40., maxval=0.)
             for n in self.valparnames
-            }
+        }
 
         # combined parameters
         valspars.update(rpars)
@@ -368,7 +369,7 @@ class CmptMassArb(CmptMass):
 
     def computeProf(self, pars):
         rvals = N.array([pars[n].v for n in self.radparnames])
-        rhovals = N.array([pars[n].v for n in self.valparnames])
+        vvals = N.array([pars[n].v for n in self.valparnames])
 
         # radii might be in wrong order
         sortidxs = N.argsort(rvals)
@@ -377,7 +378,7 @@ class CmptMassArb(CmptMass):
 
         # rgrid spanning over range of annuli (and a little inside)
         logannkpc = self.annuli.massav_logkpc
-        rgrid_logkpc = N.linspace(logannkpc[0]-0.7, logannkpc[-1], 256)
+        rgrid_logkpc = N.linspace(logannkpc[0]-0.7, logannkpc[-1], 512)
         rgrid_cent_logkpc = 0.5*(rgrid_logkpc[1:] + rgrid_logkpc[:-1])
         rgrid_cm = 10**rgrid_logkpc * kpc_cm
 
@@ -398,7 +399,7 @@ class CmptMassArb(CmptMass):
         # cumulative log mass in shells
         Mcuml_logg = N.log(N.cumsum(Mshell_g))
         # do interpolation in log space to get total mass
-        mass_g = N.exp(M.interp(logannkpc, rgrid_cent_logkpc, Mcuml_logg))
+        mass_g = N.exp(N.interp(logannkpc, rgrid_cent_logkpc, Mcuml_logg))
 
         r = self.annuli.massav_cm
         g = G_cgs * mass_g / r**2
