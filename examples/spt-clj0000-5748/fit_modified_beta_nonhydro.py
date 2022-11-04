@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # non-hydrostatic version of profile fit assuming parametric
 # modified-beta density model and McDonald temperature profile
@@ -9,10 +9,8 @@
 # note xspec will run for a while on first invocation to create grids,
 # so don't worry if it hangs on Fitting
 
-from __future__ import division, print_function
-
 import sys
-import cPickle as pickle
+import pickle
 
 import numpy as N
 import h5py

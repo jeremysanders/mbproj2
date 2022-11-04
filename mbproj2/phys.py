@@ -53,7 +53,7 @@ def fracMassHalf(snum, annuli):
     foutside = 1 - finside
     return finside, foutside
 
-def physFromProfs(model, pars, fluxbands=((0.5, 2.0),)):
+def physFromProfs(model, pars, fluxbands=((0.5, 2.0),), luminbands_keV=((0.5,2.0),)):
     """Given model and parameters, calculate physical quantities.
 
     :param Model model: model to use
@@ -92,6 +92,12 @@ def physFromProfs(model, pars, fluxbands=((0.5, 2.0),)):
         1 + 1/ne_nH) * v['T_keV'] * keV_erg
     v['tcool_yr'] = v['H_ergpcm3'] / v['L_ergpspcm3'] / yr_s
 
+    # split quantities about shell midpoint, so result is independent
+    # of binning
+    fi, fo = fracMassHalf(N.arange(nshells), annuli)
+    def cuml_midpt(data):
+        return data*fi + N.concatenate(([0], N.cumsum(data)[:-1]))
+
     # fluxes
     for band in fluxbands:
         inshells = annuli.ctrate.getFlux(
@@ -99,20 +105,29 @@ def physFromProfs(model, pars, fluxbands=((0.5, 2.0),)):
             NH_1022pcm2=model.NH_1022pcm2,
             emin_keV=band[0], emax_keV=band[1]) * v['vol_cm3']
         key = 'flux%02i%02icuml_ergpcm2ps' % (int(band[0]*10), int(band[1]*10))
-        v[key] = N.cumsum(inshells)
+        v[key] = cuml_midpt(inshells)
+
+    # luminosities
+    for band in luminbands_keV:
+        L_ergps_pcm3 = (
+            annuli.ctrate.getFlux(
+                v['T_keV'], v['Z_solar'], v['ne_pcm3'],
+                NH_1022pcm2=0,
+                emin_keV=band[0]/(1+annuli.cosmology.z),
+                emax_keV=band[1]/(1+annuli.cosmology.z)) *
+            (4 * pi * (annuli.cosmology.D_L * Mpc_cm)**2)
+        )
+        L_shell_ergps = L_ergps_pcm3 * annuli.vols_cm3
+        v['L_cuml_%g_%g_ergps' % band] = cuml_midpt(L_shell_ergps)
+        L_proj_shell_ergps = annuli.projvols_cm3.dot(L_ergps_pcm3)
+        v['L_proj_cuml_%g_%g_ergps' % band] = cuml_midpt(L_proj_shell_ergps)
 
     # turbulent velocity assuming cooling counteracted by cooling
     v['sigma_turb_kmps'] = (
         2/3*annuli.massav_cm*v['Lshell_ergps']/Mgas_g)**(1/3) / km_cm
 
-    # split quantities about shell midpoint, so result is independent
-    # of binning
-    fi, fo = fracMassHalf(N.arange(nshells), annuli)
-
-    v['Lcuml_ergps'] = v['Lshell_ergps']*fi + N.concatenate((
-            [0], N.cumsum(v['Lshell_ergps'])[:-1]))
-    v['Mgascuml_Msun'] = v['Mgas_Msun']*fi + N.concatenate((
-            [0], N.cumsum(v['Mgas_Msun'])[:-1]))
+    v['Lcuml_ergps'] = cuml_midpt(v['Lshell_ergps'])
+    v['Mgascuml_Msun'] = cuml_midpt(v['Mgas_Msun'])
 
     # this is the total mass (calculated from g)
     v['Mtotcuml_Msun'] = v['g_cmps2']*annuli.massav_cm**2/G_cgs/solar_mass_g
