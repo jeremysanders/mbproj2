@@ -15,6 +15,10 @@ to MNRAS
 
 More documentation can be found at http://mbproj2.readthedocs.io/
 
+Note: MBProj2D is a newer version of this code which fits images
+instead of profiles. It is currently being more actively developed:
+https://github.com/jeremysanders/mbproj2d
+
 Introduction
 ------------
 
